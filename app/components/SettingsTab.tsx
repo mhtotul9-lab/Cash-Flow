@@ -17,8 +17,8 @@ function SettingsForm({ position, onSave }: { position: CashPosition; onSave: (p
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-5 space-y-4 max-w-lg">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5 space-y-4 max-w-lg card-elevated">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <FieldLabel>ব্যাংক ব্যালেন্স (৳)</FieldLabel>
           <input type="number" step="0.01" value={form.bankBalance} onChange={(e) => setForm({ ...form, bankBalance: parseFloat(e.target.value) || 0 })} className={inputClass} />
@@ -36,7 +36,7 @@ function SettingsForm({ position, onSave }: { position: CashPosition; onSave: (p
         <FieldLabel hint="এর নিচে নামলে সতর্কতা আসবে">মিনিমাম সেফ ক্যাশ লেভেল (৳)</FieldLabel>
         <input type="number" step="0.01" value={form.minimumSafeCashLevel} onChange={(e) => setForm({ ...form, minimumSafeCashLevel: parseFloat(e.target.value) || 0 })} className={inputClass} />
       </div>
-      <button type="submit" className="flex items-center gap-2 bg-[var(--brown)] text-white font-medium rounded-lg py-2.5 px-4 text-sm hover:opacity-90 transition-opacity">
+      <button type="submit" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brown)] text-white font-medium rounded-lg py-3 sm:py-2.5 px-4 text-sm hover:opacity-90 transition-opacity btn-press">
         <Save className="w-4 h-4" />
         {saved ? "সেভ হয়েছে ✓" : "সেভ করুন"}
       </button>

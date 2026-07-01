@@ -85,15 +85,15 @@ export default function ForecastTab({
         </div>
       )}
 
-      <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-5">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5 card-elevated">
         <p className="text-xs text-[var(--text-muted)] mb-4">
           আনুমানিক ক্যাশ — গড় দৈনিক প্রফিট: <span className="num text-[var(--text-primary)]">৳{avgDailyProfit.toLocaleString("en-BD")}</span>/দিন
         </p>
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={chartData}>
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={chartData} margin={{ left: -20, right: 8, top: 4, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-            <XAxis dataKey="date" stroke="var(--text-faint)" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis stroke="var(--text-faint)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+            <XAxis dataKey="date" stroke="var(--text-faint)" fontSize={10} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis stroke="var(--text-faint)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
             <Tooltip
               contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border-strong)", borderRadius: "8px", fontSize: "12px" }}
               formatter={(v) => [`৳${Number(v).toLocaleString("en-BD")}`, "ক্যাশ"]}
@@ -104,7 +104,7 @@ export default function ForecastTab({
         </ResponsiveContainer>
       </div>
 
-      <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-5">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5 card-elevated">
         <div className="flex items-center justify-between mb-1.5">
           <label className="text-sm text-[var(--text-muted)]">সেল বৃদ্ধি/কমার অনুমান</label>
           <span className="num text-sm">{growthPct > 0 ? "+" : ""}{growthPct}%</span>
@@ -115,7 +115,7 @@ export default function ForecastTab({
           max={50}
           value={growthPct}
           onChange={(e) => setGrowthPct(parseInt(e.target.value))}
-          className="w-full h-1.5 rounded-full bg-[var(--bg-base)] accent-[var(--brown)]"
+          className="w-full h-2 sm:h-1.5 rounded-full bg-[var(--bg-base)] accent-[var(--brown)]"
         />
         <p className="text-[11px] text-[var(--text-faint)] mt-2">
           ধরো তুমি অ্যাড বাজেট বাড়িয়ে সেল ২০% বাড়াতে চাও — স্লাইডার সরিয়ে দেখো তাতে আগামী দিনে ক্যাশের উপর কী প্রভাব পড়ে।

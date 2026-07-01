@@ -78,13 +78,13 @@ export default function OverviewTab({
   const todayReturnAmount = useMemo(() => sum(todayReturns.map((o) => o.returnAmount || o.sellPrice)), [todayReturns]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <div>
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-medium mb-1">ওভারভিউ</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-lg sm:text-xl font-medium mb-1">ওভারভিউ</h2>
         <p className="text-xs text-[var(--text-faint)]">তোমার ব্যবসার আজকের অবস্থা — এক নজরে</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
         <StatCard
           label="আজকের সেল"
           value={`৳${todaySell.toLocaleString("en-BD")}`}
@@ -115,7 +115,7 @@ export default function OverviewTab({
         />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
         <StatCard
           label="মোট অর্ডার"
           value={`${kpis.totalOrders}`}
@@ -130,32 +130,32 @@ export default function OverviewTab({
       </div>
 
       {/* দুই সেক্টর পাশাপাশি তুলনা */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-5">
+      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="card-elevated bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <Megaphone className="w-4 h-4 text-[var(--brown)]" />
             <h3 className="font-[family-name:var(--font-display)] font-medium text-sm">ডাইরেক্ট সেল</h3>
             <InfoTip text="তুমি নিজে অ্যাড দিয়ে যা সেল করেছ — কোনো পার্টনার কমিশন নেই" />
           </div>
-          <p className="num text-2xl font-medium text-[var(--green)]">
+          <p className="num text-xl sm:text-2xl font-medium text-[var(--green)]">
             ৳{kpis.directProfit.toLocaleString("en-BD")}
           </p>
           <p className="text-xs text-[var(--text-faint)] mt-1">{kpis.directOrders} টা অর্ডার থেকে প্রফিট</p>
         </div>
-        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-5">
+        <div className="card-elevated bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-3">
             <Store className="w-4 h-4 text-[var(--mustard)]" />
             <h3 className="font-[family-name:var(--font-display)] font-medium text-sm">পার্টনার সেল</h3>
             <InfoTip text="দোকানদার পার্টনারের মাধ্যমে সেল — কমিশন বাদ দেওয়ার পরের প্রফিট" />
           </div>
-          <p className="num text-2xl font-medium text-[var(--green)]">
+          <p className="num text-xl sm:text-2xl font-medium text-[var(--green)]">
             ৳{kpis.partnerProfit.toLocaleString("en-BD")}
           </p>
           <p className="text-xs text-[var(--text-faint)] mt-1">{kpis.partnerOrders} টা অর্ডার থেকে প্রফিট (কমিশনের পর)</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
         <StatCard label="মোট সেল (রেভিনিউ)" value={`৳${kpis.totalRevenue.toLocaleString("en-BD")}`} />
         <StatCard label="মোট কাপড়ের খরচ" value={`৳${kpis.totalProductCost.toLocaleString("en-BD")}`} />
         <StatCard label="মোট অ্যাড খরচ" value={`৳${kpis.totalAdSpend.toLocaleString("en-BD")}`} />
@@ -165,16 +165,16 @@ export default function OverviewTab({
       {recentOrders.length > 0 && (
         <div>
           <p className="text-xs text-[var(--text-muted)] mb-2">সাম্প্রতিক অর্ডার</p>
-          <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl divide-y divide-[var(--border-subtle)]">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl divide-y divide-[var(--border-subtle)] card-elevated">
             {recentOrders.map((o) => (
-              <div key={o.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${o.source === "direct" ? "tag-brown" : "tag-mustard"}`}>
+              <div key={o.id} className="flex items-center justify-between gap-3 px-3.5 sm:px-4 py-3 text-sm">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${o.source === "direct" ? "tag-brown" : "tag-mustard"}`}>
                     {o.source === "direct" ? "ডাইরেক্ট" : o.partnerName}
                   </span>
-                  <span>{o.productName}</span>
+                  <span className="truncate">{o.productName}</span>
                 </div>
-                <span className={`num font-medium ${o.netProfit < 0 ? "text-[var(--red)]" : "text-[var(--green)]"}`}>
+                <span className={`num font-medium shrink-0 ${o.netProfit < 0 ? "text-[var(--red)]" : "text-[var(--green)]"}`}>
                   {o.netProfit < 0 ? "−" : ""}৳{Math.abs(o.netProfit).toLocaleString("en-BD")}
                 </span>
               </div>
@@ -183,8 +183,8 @@ export default function OverviewTab({
         </div>
       )}
 
-      <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 sm:p-5 card-elevated">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[var(--brown)]" />
             <h3 className="font-[family-name:var(--font-display)] font-medium text-sm">AI সুপারিশ</h3>
@@ -192,7 +192,7 @@ export default function OverviewTab({
           <button
             onClick={getSuggestions}
             disabled={aiLoading}
-            className="text-xs bg-[var(--brown)]/10 text-[var(--brown)] px-3 py-1.5 rounded-lg hover:bg-[var(--brown)]/20 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            className="text-xs bg-[var(--brown)]/10 text-[var(--brown)] px-3 py-2 sm:py-1.5 rounded-lg hover:bg-[var(--brown)]/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 btn-press"
           >
             {aiLoading && <Loader2 className="w-3 h-3 animate-spin" />}
             {aiLoading ? "চলছে..." : "পরামর্শ নিন"}

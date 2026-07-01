@@ -102,11 +102,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg-base)]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[var(--bg-base)]">
       <Sidebar active={tab} onChange={setTab} alertCount={alerts.length} />
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-8">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-5 md:py-8">
           {tab === "overview" && <OverviewTab position={position} kpis={kpis} orders={orders} alerts={alerts} />}
           {tab === "orders" && (
             <OrdersTab
@@ -135,6 +135,7 @@ export default function DashboardPage() {
           {tab === "alerts" && <AlertsTab alerts={alerts} />}
           {tab === "settings" && <SettingsTab position={position} onSave={savePosition} />}
         </div>
+        <div className="mobile-nav-spacer md:hidden" />
       </main>
     </div>
   );

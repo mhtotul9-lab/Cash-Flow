@@ -24,7 +24,7 @@ export default function AlertsTab({ alerts }: { alerts: Alert[] }) {
       </div>
 
       {sorted.length === 0 ? (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-10 text-center">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-8 sm:p-10 text-center">
           <p className="text-sm text-[var(--green)]">কোনো সতর্কতা নেই — সবকিছু ঠিক আছে।</p>
         </div>
       ) : (
@@ -33,7 +33,7 @@ export default function AlertsTab({ alerts }: { alerts: Alert[] }) {
             const config = SEVERITY_CONFIG[alert.severity];
             const Icon = config.icon;
             return (
-              <div key={alert.id} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-4 flex items-start gap-3">
+              <div key={alert.id} className="card-elevated bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-4 flex items-start gap-3">
                 <Icon className="w-4.5 h-4.5 shrink-0 mt-0.5" style={{ color: config.color }} />
                 <div className="flex-1">
                   <span

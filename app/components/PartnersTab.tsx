@@ -113,14 +113,14 @@ export default function PartnersTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-[family-name:var(--font-display)] text-lg font-medium">পার্টনার (দোকানদার)</h2>
           <p className="text-xs text-[var(--text-faint)] mt-0.5">যারা তোমার প্রোডাক্ট তাদের দোকানে রাখে, প্রতি সেলে কমিশন পায়</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2 rounded-lg hover:opacity-90 transition-opacity"
+          className="flex items-center justify-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2.5 sm:py-2 rounded-lg hover:opacity-90 transition-opacity btn-press"
         >
           <Plus className="w-3.5 h-3.5" />
           নতুন পার্টনার

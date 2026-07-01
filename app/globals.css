@@ -1,27 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --bg-base: #FAF6EE;
+  --bg-base: #F7F3EA;
   --bg-card: #FFFFFF;
-  --bg-card-soft: #FBF8F1;
-  --border-subtle: #E8DFC8;
-  --border-strong: #D9CBA3;
-  --text-primary: #1C1815;
-  --text-muted: #6B6052;
-  --text-faint: #9A8F7C;
+  --bg-card-soft: #FCFAF4;
+  --border-subtle: #E9E1CD;
+  --border-strong: #D6C8A3;
+  --text-primary: #211C16;
+  --text-muted: #6E6354;
+  --text-faint: #9C9080;
 
-  --brown: #8B6F3F;
-  --brown-soft: #A6895A;
-  --green: #2D6A4F;
-  --green-soft: #DCEEE4;
-  --red: #B33A3A;
-  --red-soft: #F6E0DE;
-  --mustard: #C9961F;
-  --mustard-soft: #F5EAD0;
+  --brown: #9A6F35;
+  --brown-soft: #B68C53;
+  --brown-deep: #6B4D22;
+  --green: #1F7A52;
+  --green-soft: #DCF0E4;
+  --red: #C23B3B;
+  --red-soft: #FAE2E0;
+  --mustard: #B8841A;
+  --mustard-soft: #F7EBCE;
 
-  --font-display: "Fraunces", serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+  --shadow-sm: 0 1px 2px rgba(33, 28, 22, 0.06);
+  --shadow-md: 0 2px 8px rgba(33, 28, 22, 0.07), 0 1px 2px rgba(33, 28, 22, 0.05);
+  --shadow-lg: 0 8px 24px rgba(33, 28, 22, 0.10), 0 2px 6px rgba(33, 28, 22, 0.06);
+
+  --font-display: Georgia, "Noto Serif Bengali", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Bengali", Roboto, sans-serif;
+  --font-mono: "SF Mono", "Consolas", "Liberation Mono", monospace;
 }
 
 @theme inline {
@@ -43,13 +48,18 @@
   border-color: var(--border-subtle);
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-body);
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(139,111,63,0.06) 1px, transparent 0);
+    radial-gradient(circle at 1px 1px, rgba(154, 111, 53, 0.07) 1px, transparent 0);
   background-size: 18px 18px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::-webkit-scrollbar {
@@ -72,7 +82,7 @@ body {
 .tag-green { background: var(--green-soft); color: var(--green); }
 .tag-red { background: var(--red-soft); color: var(--red); }
 .tag-mustard { background: var(--mustard-soft); color: var(--mustard); }
-.tag-brown { background: #F0E8D8; color: var(--brown); }
+.tag-brown { background: #F1E6D2; color: var(--brown-deep); }
 
 .receipt-line {
   border-bottom: 1px dashed var(--border-strong);
@@ -81,6 +91,7 @@ body {
 .receipt-card {
   background: var(--bg-card);
   position: relative;
+  box-shadow: var(--shadow-md);
 }
 .receipt-card::before {
   content: "";
@@ -92,9 +103,41 @@ body {
   background-repeat: repeat-x;
 }
 
+.card-elevated {
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+.card-elevated:active {
+  transform: scale(0.98);
+}
+@media (hover: hover) {
+  .card-elevated:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+}
+
+.btn-press {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+
 :focus-visible {
   outline: 2px solid var(--brown);
   outline-offset: 2px;
+}
+
+/* মোবাইলে নিচের নেভিগেশন বারের জন্য জায়গা রাখা */
+.mobile-nav-spacer {
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

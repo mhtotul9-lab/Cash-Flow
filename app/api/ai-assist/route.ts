@@ -8,11 +8,12 @@ async function callOpenRouter(
   systemPrompt: string,
   userPrompt: string
 ) {
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
@@ -65,9 +66,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { payload } = body as { payload: unknown };
 
-    if (!process.env.OPENROUTER_API_KEY) {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    // Debug: Vercel logs এ দেখা যাবে key আছে কিনা ও কত character
+    console.log("[ai-assist] OPENROUTER_API_KEY present:", !!apiKey, "length:", apiKey?.length ?? 0);
+
+    if (!apiKey || apiKey.trim().length === 0) {
       return NextResponse.json(
-        { error: "OPENROUTER_API_KEY কনফিগার করা নেই।" },
+        { error: "OPENROUTER_API_KEY কনফিগার করা নেই বা ফাঁকা।" },
         { status: 500 }
       );
     }

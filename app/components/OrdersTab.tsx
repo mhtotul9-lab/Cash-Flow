@@ -199,22 +199,22 @@ export default function OrdersTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-[family-name:var(--font-display)] text-lg font-medium">অর্ডার</h2>
           <p className="text-xs text-[var(--text-faint)] mt-0.5">প্রতি সেলের হিসাব এক এক করে রাখো</p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 sm:flex gap-2">
           <button
             onClick={() => setShowExcelUpload(true)}
-            className="flex items-center gap-1.5 text-xs bg-[var(--mustard)]/10 text-[var(--mustard)] font-medium px-3 py-2 rounded-lg hover:bg-[var(--mustard)]/20 transition-colors"
+            className="flex items-center justify-center gap-1.5 text-xs bg-[var(--mustard)]/10 text-[var(--mustard)] font-medium px-3 py-2.5 sm:py-2 rounded-lg hover:bg-[var(--mustard)]/20 transition-colors btn-press"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             Excel আপলোড
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2 rounded-lg hover:opacity-90 transition-opacity"
+            className="flex items-center justify-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2.5 sm:py-2 rounded-lg hover:opacity-90 transition-opacity btn-press"
           >
             <Plus className="w-3.5 h-3.5" />
             নতুন অর্ডার
@@ -226,7 +226,7 @@ export default function OrdersTab({
 
       {showForm && (
         <FormPanel title="নতুন অর্ডার" onClose={() => setShowForm(false)} onSubmit={handleSubmit} submitLabel="অর্ডার সেভ করুন" wide>
-          <div className="grid md:grid-cols-2 gap-5">
+          <div className="grid sm:grid-cols-2 gap-5">
             <div className="space-y-3.5">
               <div>
                 <FieldLabel>এই অর্ডার কীভাবে হয়েছে?</FieldLabel>

@@ -25,18 +25,18 @@ export default function StatCard({
       : "text-[var(--text-primary)]";
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-4 hover:border-[var(--border-strong)] transition-colors">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-[var(--text-muted)]">{label}</span>
-        {Icon && <Icon className="w-3.5 h-3.5 text-[var(--text-faint)]" />}
+    <div className="card-elevated bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-3.5 sm:p-4">
+      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+        <span className="text-[11px] sm:text-xs text-[var(--text-muted)] leading-tight">{label}</span>
+        {Icon && <Icon className="w-3.5 h-3.5 text-[var(--text-faint)] shrink-0" />}
       </div>
       <div
-        className={`num font-[family-name:var(--font-mono)] text-2xl font-medium tracking-tight ${toneColor}`}
+        className={`num font-[family-name:var(--font-mono)] text-xl sm:text-2xl font-medium tracking-tight ${toneColor}`}
       >
         {value}
-        {suffix && <span className="text-sm text-[var(--text-muted)] ml-1">{suffix}</span>}
+        {suffix && <span className="text-xs sm:text-sm text-[var(--text-muted)] ml-1">{suffix}</span>}
       </div>
-      {sublabel && <p className="text-[11px] text-[var(--text-faint)] mt-1.5">{sublabel}</p>}
+      {sublabel && <p className="text-[10px] sm:text-[11px] text-[var(--text-faint)] mt-1 sm:mt-1.5 leading-snug">{sublabel}</p>}
     </div>
   );
 }
