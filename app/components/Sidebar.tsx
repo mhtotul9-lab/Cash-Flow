@@ -14,6 +14,9 @@ import {
   LogOut,
   MoreHorizontal,
   X,
+  Package,
+  DollarSign,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -23,23 +26,40 @@ export type DashboardTab =
   | "partners"
   | "adspend"
   | "expenses"
+  | "purchases"   // নতুন — প্রোডাক্ট কেনা
+  | "dollarrate"  // নতুন — ডলার রেট
+  | "dailyreport" // নতুন — দৈনিক রিপোর্ট
   | "forecast"
   | "alerts"
   | "settings";
 
-const NAV_ITEMS: { id: DashboardTab; label: string; shortLabel: string; icon: typeof LayoutDashboard }[] = [
+const NAV_ITEMS: {
+  id: DashboardTab;
+  label: string;
+  shortLabel: string;
+  icon: typeof LayoutDashboard;
+  isNew?: boolean;
+}[] = [
   { id: "overview", label: "ওভারভিউ", shortLabel: "হোম", icon: LayoutDashboard },
   { id: "orders", label: "অর্ডার", shortLabel: "অর্ডার", icon: ShoppingBag },
-  { id: "partners", label: "পার্টনার (দোকানদার)", shortLabel: "পার্টনার", icon: Users },
+  { id: "dailyreport", label: "দৈনিক রিপোর্ট", shortLabel: "রিপোর্ট", icon: ClipboardList, isNew: true },
+  { id: "partners", label: "পার্টনার", shortLabel: "পার্টনার", icon: Users },
+  { id: "purchases", label: "প্রোডাক্ট কেনা", shortLabel: "কেনা", icon: Package, isNew: true },
   { id: "adspend", label: "অ্যাড খরচ", shortLabel: "অ্যাড", icon: Megaphone },
+  { id: "dollarrate", label: "ডলার রেট", shortLabel: "ডলার", icon: DollarSign, isNew: true },
   { id: "expenses", label: "অন্য খরচ", shortLabel: "খরচ", icon: Wallet },
   { id: "forecast", label: "ফোরকাস্ট", shortLabel: "ফোরকাস্ট", icon: LineChart },
   { id: "alerts", label: "সতর্কতা", shortLabel: "সতর্কতা", icon: AlertTriangle },
   { id: "settings", label: "সেটিংস", shortLabel: "সেটিংস", icon: Settings },
 ];
 
-// মোবাইল bottom bar এ এই ৪টা সবচেয়ে বেশি ব্যবহৃত ট্যাব থাকবে, বাকিগুলো "আরও" তে
-const MOBILE_PRIMARY_IDS: DashboardTab[] = ["overview", "orders", "partners", "adspend"];
+// মোবাইল bottom bar এ সবচেয়ে বেশি ব্যবহৃত ৪টা
+const MOBILE_PRIMARY_IDS: DashboardTab[] = [
+  "overview",
+  "orders",
+  "dailyreport",
+  "adspend",
+];
 
 export default function Sidebar({
   active,
@@ -53,8 +73,12 @@ export default function Sidebar({
   const { logout, user } = useAuth();
   const [showMore, setShowMore] = useState(false);
 
-  const primaryItems = NAV_ITEMS.filter((i) => MOBILE_PRIMARY_IDS.includes(i.id));
-  const moreItems = NAV_ITEMS.filter((i) => !MOBILE_PRIMARY_IDS.includes(i.id));
+  const primaryItems = NAV_ITEMS.filter((i) =>
+    MOBILE_PRIMARY_IDS.includes(i.id)
+  );
+  const moreItems = NAV_ITEMS.filter(
+    (i) => !MOBILE_PRIMARY_IDS.includes(i.id)
+  );
   const moreActive = moreItems.some((i) => i.id === active);
 
   return (
@@ -63,7 +87,7 @@ export default function Sidebar({
       <aside className="hidden md:flex w-64 shrink-0 border-r border-[var(--border-subtle)] bg-[var(--bg-base)] flex-col">
         <div className="flex items-center gap-2.5 px-5 py-5">
           <div className="w-8 h-8 rounded-full bg-[var(--brown)]/10 flex items-center justify-center shrink-0">
-            <BookOpen className="w-4.5 h-4.5 text-[var(--brown)]" strokeWidth={2} />
+            <BookOpen className="w-4 h-4 text-[var(--brown)]" strokeWidth={2} />
           </div>
           <span className="font-[family-name:var(--font-display)] font-semibold text-[15px] tracking-tight">
             হিসাবের খাতা
@@ -84,8 +108,16 @@ export default function Sidebar({
                     : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]/60"
                 }`}
               >
-                <Icon className="w-4 h-4 shrink-0" strokeWidth={isActive ? 2.3 : 2} />
+                <Icon
+                  className="w-4 h-4 shrink-0"
+                  strokeWidth={isActive ? 2.3 : 2}
+                />
                 <span>{item.label}</span>
+                {item.isNew && (
+                  <span className="ml-auto text-[9px] bg-[var(--brown)]/15 text-[var(--brown)] px-1.5 py-0.5 rounded-full font-medium">
+                    নতুন
+                  </span>
+                )}
                 {item.id === "alerts" && alertCount > 0 && (
                   <span className="ml-auto bg-[var(--red)] text-white text-[10px] font-semibold rounded-full w-5 h-5 flex items-center justify-center">
                     {alertCount > 9 ? "9+" : alertCount}
@@ -119,10 +151,12 @@ export default function Sidebar({
           <div className="w-7 h-7 rounded-full bg-[var(--brown)]/10 flex items-center justify-center">
             <BookOpen className="w-4 h-4 text-[var(--brown)]" strokeWidth={2} />
           </div>
-          <span className="font-[family-name:var(--font-display)] font-semibold text-sm">হিসাবের খাতা</span>
+          <span className="font-[family-name:var(--font-display)] font-semibold text-sm">
+            হিসাবের খাতা
+          </span>
         </div>
         <button onClick={logout} className="text-[var(--text-faint)] p-1.5 -mr-1.5">
-          <LogOut className="w-4.5 h-4.5" />
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
 
@@ -142,7 +176,11 @@ export default function Sidebar({
                   className={`w-5 h-5 ${isActive ? "text-[var(--brown)]" : "text-[var(--text-faint)]"}`}
                   strokeWidth={isActive ? 2.4 : 2}
                 />
-                <span className={`text-[10px] leading-none ${isActive ? "text-[var(--brown)] font-medium" : "text-[var(--text-faint)]"}`}>
+                <span
+                  className={`text-[10px] leading-none ${
+                    isActive ? "text-[var(--brown)] font-medium" : "text-[var(--text-faint)]"
+                  }`}
+                >
                   {item.shortLabel}
                 </span>
                 {isActive && (
@@ -151,6 +189,8 @@ export default function Sidebar({
               </button>
             );
           })}
+
+          {/* "আরও" বাটন */}
           <button
             onClick={() => setShowMore(true)}
             className="flex flex-col items-center justify-center gap-1 btn-press relative"
@@ -159,11 +199,15 @@ export default function Sidebar({
               className={`w-5 h-5 ${moreActive ? "text-[var(--brown)]" : "text-[var(--text-faint)]"}`}
               strokeWidth={moreActive ? 2.4 : 2}
             />
-            <span className={`text-[10px] leading-none ${moreActive ? "text-[var(--brown)] font-medium" : "text-[var(--text-faint)]"}`}>
+            <span
+              className={`text-[10px] leading-none ${
+                moreActive ? "text-[var(--brown)] font-medium" : "text-[var(--text-faint)]"
+              }`}
+            >
               আরও
             </span>
             {alertCount > 0 && (
-              <span className="absolute top-1 right-[28%] bg-[var(--red)] w-2 h-2 rounded-full" />
+              <span className="absolute top-1 right-[26%] bg-[var(--red)] w-2 h-2 rounded-full" />
             )}
             {moreActive && (
               <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[var(--brown)] rounded-full" />
@@ -175,15 +219,23 @@ export default function Sidebar({
       {/* মোবাইল "আরও" শীট */}
       {showMore && (
         <div className="md:hidden fixed inset-0 z-50 flex items-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowMore(false)} />
-          <div className="relative w-full bg-[var(--bg-card)] rounded-t-2xl pb-[env(safe-area-inset-bottom)] max-h-[70vh] overflow-y-auto">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowMore(false)}
+          />
+          <div className="relative w-full bg-[var(--bg-card)] rounded-t-2xl max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 pt-4 pb-2">
-              <span className="font-[family-name:var(--font-display)] font-medium text-base">আরও অপশন</span>
-              <button onClick={() => setShowMore(false)} className="text-[var(--text-muted)] p-1">
+              <span className="font-[family-name:var(--font-display)] font-medium text-base">
+                আরও অপশন
+              </span>
+              <button
+                onClick={() => setShowMore(false)}
+                className="text-[var(--text-muted)] p-1"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="px-3 pb-4 space-y-0.5">
+            <div className="px-3 pb-6 space-y-0.5">
               {moreItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = active === item.id;
@@ -195,11 +247,18 @@ export default function Sidebar({
                       setShowMore(false);
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm transition-colors ${
-                      isActive ? "bg-[var(--brown)]/10 text-[var(--brown)]" : "text-[var(--text-primary)]"
+                      isActive
+                        ? "bg-[var(--brown)]/10 text-[var(--brown)]"
+                        : "text-[var(--text-primary)]"
                     }`}
                   >
                     <Icon className="w-5 h-5 shrink-0" />
                     <span>{item.label}</span>
+                    {item.isNew && (
+                      <span className="ml-2 text-[9px] bg-[var(--brown)]/15 text-[var(--brown)] px-1.5 py-0.5 rounded-full font-medium">
+                        নতুন
+                      </span>
+                    )}
                     {item.id === "alerts" && alertCount > 0 && (
                       <span className="ml-auto bg-[var(--red)] text-white text-[10px] font-semibold rounded-full w-5 h-5 flex items-center justify-center">
                         {alertCount > 9 ? "9+" : alertCount}
@@ -208,7 +267,7 @@ export default function Sidebar({
                   </button>
                 );
               })}
-              <div className="px-4 pt-2 pb-1 text-xs text-[var(--text-faint)] truncate border-t border-[var(--border-subtle)] mt-2">
+              <div className="px-4 pt-3 pb-1 text-xs text-[var(--text-faint)] truncate border-t border-[var(--border-subtle)] mt-2">
                 {user?.email}
               </div>
             </div>

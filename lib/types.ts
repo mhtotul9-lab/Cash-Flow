@@ -1,44 +1,72 @@
-// ব্যবসার মূল ডোমেইন টাইপ — দুই সেক্টর: ডাইরেক্ট সেল ও পার্টনার সেল
+// ব্যবসার মূল ডোমেইন টাইপ
 
 export type OrderSource = "direct" | "partner";
 export type CommissionType = "fixed" | "percentage";
 export type AdSpendMode = "manual" | "average";
 
+// ========== পার্টনার ==========
 export interface Partner {
   id: string;
   name: string;
-  area: string; // এলাকা/দোকানের নাম
+  area: string;
   phone: string;
   commissionType: CommissionType;
-  commissionValue: number; // ফিক্সড হলে টাকা, % হলে শতাংশ
+  commissionValue: number;
   totalOrders: number;
-  totalCommissionDue: number; // হিসাবযোগ্য, Firestore এ ক্যাশ করা থাকবে
+  totalCommissionDue: number;
   totalCommissionPaid: number;
   active: boolean;
   createdAt: number;
 }
 
+// ========== প্রোডাক্ট ক্রয় (নতুন) ==========
+export interface ProductPurchase {
+  id: string;
+  date: string;
+  productName: string;
+  quantity: number;          // কতটা কিনেছ
+  unitPrice: number;         // প্রতি পিসের দাম (BDT)
+  unitPriceUSD?: number;     // ডলারে কিনলে
+  dollarRate?: number;       // সেদিনের ডলার রেট
+  totalCost: number;         // quantity × unitPrice (BDT)
+  shippingCost: number;      // আনার খরচ (কুরিয়ার/পরিবহন)
+  note: string;
+  createdAt: number;
+}
+
+// ========== ডলার রেট লগ (নতুন) ==========
+export interface DollarRate {
+  id: string;
+  date: string;
+  rate: number;              // ১ ডলার = কত টাকা
+  note: string;
+  createdAt: number;
+}
+
+// ========== অর্ডার ==========
 export interface Order {
   id: string;
-  date: string; // ISO date
+  date: string;
   source: OrderSource;
-  partnerId: string | null; // source === "partner" হলে
-  partnerName: string | null; // স্ন্যাপশট, পার্টনার মুছে গেলেও হিস্টোরি ঠিক থাকবে
+  partnerId: string | null;
+  partnerName: string | null;
   productName: string;
-  sellPrice: number; // কাস্টমার থেকে পাওয়া টাকা
-  productCost: number; // কাপড়ের পাইকারি দাম (BDT তে, ডলার রেট দিয়ে কনভার্ট করা থাকলে)
-  productCostUSD?: number; // যদি বিদেশ থেকে ডলারে কেনা হয় (ঐচ্ছিক)
-  dollarRate?: number; // সেই সময়ের ডলার রেট (ঐচ্ছিক, productCostUSD থাকলে কাজে লাগে)
+  sellPrice: number;
+  productCost: number;
+  productCostUSD?: number;
+  dollarRate?: number;
   adSpendMode: AdSpendMode;
-  adSpend: number; // manual হলে নিজে দেওয়া, average হলে ক্যালকুলেটেড স্ন্যাপশট
-  callPackagingCost: number; // কল ও প্যাকেজিং খরচ (TA/DA)
-  returnAmount: number; // অর্ডার রিটার্ন হলে যত টাকা ফেরত/লস
+  adSpend: number;
+  adSpendUSD?: number;       // ডলারে অ্যাড খরচ (নতুন)
+  adSpendDollarRate?: number; // সেদিনের ডলার রেট (নতুন)
+  callPackagingCost: number;
+  returnAmount: number;
   isReturned: boolean;
-  otherCost: number; // অন্য কোনো বিচ্ছিন্ন খরচ এই অর্ডারের জন্য
+  otherCost: number;
   commissionType: CommissionType | null;
-  commissionValue: number; // স্ন্যাপশট— পরে পার্টনারের রেট পরিবর্তন হলেও পুরোনো অর্ডারের হিসাব ঠিক থাকবে
-  commissionAmount: number; // ক্যালকুলেটেড
-  netProfit: number; // ক্যালকুলেটেড
+  commissionValue: number;
+  commissionAmount: number;
+  netProfit: number;
   paymentReceived: boolean;
   note: string;
   createdAt: number;
@@ -46,19 +74,23 @@ export interface Order {
   jolrasiSaleId?: string;
 }
 
+// ========== অ্যাড খরচ ==========
 export type DailyAdSpendCategory = "facebook" | "tiktok" | "other";
 
 export interface DailyAdSpend {
   id: string;
   date: string;
   category: DailyAdSpendCategory;
-  amount: number;
+  amount: number;            // BDT
+  amountUSD?: number;        // ডলারে হলে (নতুন)
+  dollarRate?: number;       // সেদিনের ডলার রেট (নতুন)
   note: string;
   createdAt: number;
 }
 
+// ========== অন্য খরচ ==========
 export type ExpenseCategory =
-  | "fabric_purchase" // কাপড় পাইকারি কেনা (বাল্ক, অর্ডারের বাইরে)
+  | "fabric_purchase"
   | "shipping"
   | "packaging"
   | "salary"
@@ -76,14 +108,16 @@ export interface ExpenseEntry {
   createdAt: number;
 }
 
+// ========== ক্যাশ পজিশন ==========
 export interface CashPosition {
   bankBalance: number;
-  mobileWalletBalance: number; // বিকাশ/নগদ এ থাকা টাকা
+  mobileWalletBalance: number;
   cashInHand: number;
   minimumSafeCashLevel: number;
   asOf: string;
 }
 
+// ========== কমিশন পেমেন্ট ==========
 export interface CommissionPayment {
   id: string;
   partnerId: string;
@@ -94,6 +128,7 @@ export interface CommissionPayment {
   createdAt: number;
 }
 
+// ========== KPI ==========
 export interface KPISet {
   totalOrders: number;
   directOrders: number;
@@ -106,11 +141,28 @@ export interface KPISet {
   directProfit: number;
   partnerProfit: number;
   avgProfitPerOrder: number;
-  profitMargin: number; // %
+  profitMargin: number;
   pendingCommissionDue: number;
   runwayDays: number;
 }
 
+// ========== প্রতিদিনের রিপোর্ট (নতুন) ==========
+export interface DailyReport {
+  date: string;
+  totalOrders: number;
+  totalSell: number;          // মোট আয়
+  totalAdSpendBDT: number;    // অ্যাড খরচ (BDT তে)
+  totalAdSpendUSD: number;    // অ্যাড খরচ ($)
+  totalProductCost: number;   // পণ্যের দাম
+  totalCallPackaging: number; // কল ও প্যাকেজিং
+  totalOtherCost: number;     // অন্য খরচ
+  totalExpenses: number;      // সাধারণ খরচ (ExpenseEntry)
+  totalReturn: number;        // রিটার্ন লস
+  returnCount: number;        // রিটার্ন সংখ্যা
+  netProfit: number;          // মোট লাভ/লস
+}
+
+// ========== অ্যালার্ট ==========
 export interface Alert {
   id: string;
   type:
@@ -119,7 +171,8 @@ export interface Alert {
     | "high_commission_due"
     | "loss_order"
     | "missing_ad_spend"
-    | "cash_gap";
+    | "cash_gap"
+    | "low_stock";          // নতুন — স্টক কম হলে
   severity: "low" | "medium" | "high" | "critical";
   message: string;
   createdAt: number;

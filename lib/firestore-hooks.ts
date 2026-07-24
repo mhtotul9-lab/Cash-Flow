@@ -21,6 +21,8 @@ import {
   ExpenseEntry,
   CashPosition,
   CommissionPayment,
+  ProductPurchase,
+  DollarRate,
 } from "./types";
 
 function useCollection<T>(uid: string | undefined, name: string) {
@@ -28,16 +30,13 @@ function useCollection<T>(uid: string | undefined, name: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!uid) {
-      return;
-    }
+    if (!uid) return;
     const ref = collection(db, "users", uid, name);
     const q = query(ref, orderBy("createdAt", "desc"));
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as T);
-        setData(items);
+        setData(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as T));
         setLoading(false);
       },
       (err) => {
@@ -63,7 +62,6 @@ function useCollection<T>(uid: string | undefined, name: string) {
   const bulkAdd = useCallback(
     async (items: Omit<T, "id" | "createdAt">[]) => {
       if (!uid || items.length === 0) return;
-      // Firestore batch এর সর্বোচ্চ সীমা ৫০০ অপারেশন, তাই চাঙ্কে ভাগ করা
       const chunkSize = 450;
       for (let i = 0; i < items.length; i += chunkSize) {
         const chunk = items.slice(i, i + chunkSize);
@@ -120,6 +118,16 @@ export function useCommissionPayments(uid: string | undefined) {
   return useCollection<CommissionPayment>(uid, "commissionPayments");
 }
 
+// নতুন — প্রোডাক্ট ক্রয়
+export function useProductPurchases(uid: string | undefined) {
+  return useCollection<ProductPurchase>(uid, "productPurchases");
+}
+
+// নতুন — ডলার রেট লগ
+export function useDollarRates(uid: string | undefined) {
+  return useCollection<DollarRate>(uid, "dollarRates");
+}
+
 export function useCashPosition(uid: string | undefined) {
   const [position, setPosition] = useState<CashPosition>({
     bankBalance: 0,
@@ -131,14 +139,10 @@ export function useCashPosition(uid: string | undefined) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!uid) {
-      return;
-    }
+    if (!uid) return;
     const ref = doc(db, "users", uid, "meta", "cashPosition");
     const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setPosition(snap.data() as CashPosition);
-      }
+      if (snap.exists()) setPosition(snap.data() as CashPosition);
       setLoading(false);
     });
     return () => unsub();
@@ -153,4 +157,16 @@ export function useCashPosition(uid: string | undefined) {
   );
 
   return { position, loading, save };
+}
+
+// নতুন — আজকের ডলার রেট বের করা (সর্বশেষ এন্ট্রি)
+export function useLatestDollarRate(
+  dollarRates: DollarRate[],
+  date: string
+): number {
+  // সেই তারিখের রেট খোঁজো, না পেলে সর্বশেষ রেট
+  const onDate = dollarRates.find((r) => r.date === date);
+  if (onDate) return onDate.rate;
+  if (dollarRates.length > 0) return dollarRates[0].rate;
+  return 110; // default fallback
 }
