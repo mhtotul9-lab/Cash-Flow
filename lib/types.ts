@@ -72,7 +72,28 @@ export interface Order {
   createdAt: number;
   syncedFromJolrasi?: boolean;
   jolrasiSaleId?: string;
+  // ========== Steadfast কুরিয়ার (নতুন) ==========
+  steadfastConsignmentId?: string;   // Steadfast এ পাঠানোর পর তাদের consignment_id
+  steadfastTrackingCode?: string;    // ট্র্যাকিং কোড
+  steadfastStatus?: SteadfastStatus; // সর্বশেষ ডেলিভারি স্ট্যাটাস
+  steadfastLastCheckedAt?: number;   // সর্বশেষ কবে স্ট্যাটাস চেক করা হয়েছে
+  recipientName?: string;            // Steadfast এ পাঠাতে দরকার
+  recipientPhone?: string;
+  recipientAddress?: string;
 }
+
+export type SteadfastStatus =
+  | "pending"
+  | "delivered_approval_pending"
+  | "partial_delivered_approval_pending"
+  | "cancelled_approval_pending"
+  | "unknown_approval_pending"
+  | "delivered"
+  | "partial_delivered"
+  | "cancelled"
+  | "hold"
+  | "in_review"
+  | "unknown";
 
 // ========== অ্যাড খরচ ==========
 export type DailyAdSpendCategory = "facebook" | "tiktok" | "other";

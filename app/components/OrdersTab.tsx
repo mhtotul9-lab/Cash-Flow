@@ -7,6 +7,12 @@ import ProfitReceipt, { ReceiptLine } from "./ProfitReceipt";
 import ExcelUpload from "./ExcelUpload";
 import { Order, OrderSource, CommissionType, AdSpendMode, Partner, DailyAdSpend } from "@/lib/types";
 import { calcCommission, calcOrderProfit, calcAverageAdSpendPerOrder, round2 } from "@/lib/calculations";
+import {
+  sendOrderToSteadfast,
+  checkSteadfastStatus,
+  isStatusReturned,
+  STATUS_LABEL_BN,
+} from "@/lib/steadfast-client";
 
 const emptyForm = {
   date: new Date().toISOString().slice(0, 10),
@@ -26,6 +32,9 @@ const emptyForm = {
   returnAmount: "",
   paymentReceived: true,
   note: "",
+  recipientName: "",
+  recipientPhone: "",
+  recipientAddress: "",
 };
 
 export default function OrdersTab({
@@ -51,6 +60,54 @@ export default function OrdersTab({
   const [editingAdSpend, setEditingAdSpend] = useState<Order | null>(null);
   const [adSpendValue, setAdSpendValue] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [steadfastBusyId, setSteadfastBusyId] = useState<string | null>(null);
+
+  async function handleSendToSteadfast(order: Order) {
+    setSteadfastBusyId(order.id);
+    try {
+      const result = await sendOrderToSteadfast(order);
+      await onUpdate(order.id, result);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Steadfast এ পাঠাতে সমস্যা হয়েছে");
+    } finally {
+      setSteadfastBusyId(null);
+    }
+  }
+
+  async function handleCheckStatus(order: Order) {
+    setSteadfastBusyId(order.id);
+    try {
+      const status = await checkSteadfastStatus(order);
+      if (!status) return;
+      const patch: Partial<Order> = {
+        steadfastStatus: status,
+        steadfastLastCheckedAt: Date.now(),
+      };
+      // বাতিল/রিটার্ন হলে অটো নেট প্রফিট রিক্যালকুলেট করে
+      if (isStatusReturned(status) && !order.isReturned) {
+        const returnAmount = order.sellPrice;
+        patch.isReturned = true;
+        patch.returnAmount = returnAmount;
+        patch.netProfit = calcOrderProfit(
+          order.sellPrice,
+          order.productCost,
+          order.adSpend,
+          order.commissionAmount,
+          {
+            callPackagingCost: order.callPackagingCost,
+            otherCost: order.otherCost,
+            returnAmount,
+            isReturned: true,
+          }
+        );
+      }
+      await onUpdate(order.id, patch);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "স্ট্যাটাস চেক করতে সমস্যা হয়েছে");
+    } finally {
+      setSteadfastBusyId(null);
+    }
+  }
 
   const activePartners = partners.filter((p) => p.active);
   const selectedPartner = activePartners.find((p) => p.id === form.partnerId);
@@ -134,6 +191,9 @@ export default function OrdersTab({
       netProfit,
       paymentReceived: form.paymentReceived,
       note: form.note,
+      recipientName: form.recipientName || undefined,
+      recipientPhone: form.recipientPhone || undefined,
+      recipientAddress: form.recipientAddress || undefined,
     });
     setShowForm(false);
     setShowAdvanced(false);
@@ -194,6 +254,33 @@ export default function OrdersTab({
           {o.netProfit < 0 ? "−" : ""}৳{Math.abs(o.netProfit).toLocaleString("en-BD")}
         </span>
       ),
+    },
+    {
+      header: "কুরিয়ার",
+      render: (o) => {
+        const busy = steadfastBusyId === o.id;
+        if (!o.steadfastConsignmentId) {
+          return (
+            <button
+              onClick={() => handleSendToSteadfast(o)}
+              disabled={busy}
+              className="text-[10px] tag-mustard px-2 py-1 rounded-full hover:opacity-80 disabled:opacity-50"
+            >
+              {busy ? "পাঠানো হচ্ছে..." : "Steadfast এ পাঠাও"}
+            </button>
+          );
+        }
+        return (
+          <button
+            onClick={() => handleCheckStatus(o)}
+            disabled={busy}
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full hover:opacity-80 disabled:opacity-50 tag-green"
+            title="ক্লিক করে সর্বশেষ স্ট্যাটাস আনো"
+          >
+            {busy ? "চেক হচ্ছে..." : o.steadfastStatus ? STATUS_LABEL_BN[o.steadfastStatus] : "স্ট্যাটাস চেক করো"}
+          </button>
+        );
+      },
     },
   ];
 
@@ -424,6 +511,32 @@ export default function OrdersTab({
 
               {showAdvanced && (
                 <div className="space-y-3.5 bg-[var(--bg-base)] border border-[var(--border-subtle)] rounded-lg p-3.5">
+                  <div>
+                    <FieldLabel hint="Steadfast এ কুরিয়ার পাঠাতে হলে এগুলো লাগবে">গ্রাহকের তথ্য (কুরিয়ারের জন্য)</FieldLabel>
+                    <div className="grid grid-cols-2 gap-3 mt-1.5">
+                      <input
+                        type="text"
+                        value={form.recipientName}
+                        onChange={(e) => setForm({ ...form, recipientName: e.target.value })}
+                        placeholder="নাম"
+                        className={inputClass}
+                      />
+                      <input
+                        type="text"
+                        value={form.recipientPhone}
+                        onChange={(e) => setForm({ ...form, recipientPhone: e.target.value })}
+                        placeholder="ফোন নাম্বার"
+                        className={inputClass}
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={form.recipientAddress}
+                      onChange={(e) => setForm({ ...form, recipientAddress: e.target.value })}
+                      placeholder="ঠিকানা"
+                      className={`${inputClass} mt-2`}
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <FieldLabel>কল ও প্যাকেজিং (৳)</FieldLabel>
