@@ -165,6 +165,8 @@ export interface KPISet {
   profitMargin: number;
   pendingCommissionDue: number;
   runwayDays: number;
+  totalReturnLoss: number;
+  totalReturnCount: number;
 }
 
 // ========== প্রতিদিনের রিপোর্ট (নতুন) ==========

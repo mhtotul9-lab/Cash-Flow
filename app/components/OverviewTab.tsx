@@ -127,6 +127,13 @@ export default function OverviewTab({
           tone={kpis.pendingCommissionDue > 0 ? "warning" : "neutral"}
           sublabel="এখনো পরিশোধ করা হয়নি"
         />
+        <StatCard
+          label="মোট কুরিয়ার রিটার্ন লস"
+          value={`৳${kpis.totalReturnLoss.toLocaleString("en-BD")}`}
+          icon={RotateCcw}
+          tone={kpis.totalReturnLoss > 0 ? "negative" : "neutral"}
+          sublabel={`সর্বমোট ${kpis.totalReturnCount}টি অর্ডার রিটার্ন (Steadfast সহ)`}
+        />
       </div>
 
       {/* দুই সেক্টর পাশাপাশি তুলনা */}

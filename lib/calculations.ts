@@ -115,6 +115,11 @@ export function calcKPIs(
       ? Math.max(0, Math.floor(netCash / avgDailyBurn))
       : 9999;
 
+  const returnedOrders = orders.filter((o) => o.isReturned);
+  const totalReturnLoss = round2(
+    sum(returnedOrders.map((o) => o.returnAmount || o.sellPrice))
+  );
+
   return {
     totalOrders: orders.length,
     directOrders: directOrders.length,
@@ -130,6 +135,8 @@ export function calcKPIs(
     profitMargin,
     pendingCommissionDue,
     runwayDays: runwayDays > 9999 ? 9999 : runwayDays,
+    totalReturnLoss,
+    totalReturnCount: returnedOrders.length,
   };
 }
 
