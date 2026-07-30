@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { initializeFirestore, getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.AIzaSyAjBBEiktZ7qJ2b_J6Q-T7nG5x8u68-b7s,
+  authDomain: process.env.cash-flow-11f2d.firebaseapp.com,
+  projectId: process.env.cash-flow-11f2d,
+  storageBucket: process.env.cash-flow-11f2d.firebasestorage.app,
+  messagingSenderId: process.env.874104841202,
+  appId: process.env.1:874104841202:web:036e145a33021a016fc16b,
 };
 
 const wasAlreadyInitialized = getApps().length > 0;
