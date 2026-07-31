@@ -2,16 +2,18 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { initializeFirestore, getFirestore } from "firebase/firestore";
 
-// Firebase-এর এই config ভ্যালুগুলো সিক্রেট না — ব্রাউজারে থাকা স্বাভাবিক।
-// আসল সিকিউরিটি আসে Firestore/Auth এর Security Rules থেকে, এই key থেকে না।
-// (এই কারণেই Steadfast-এর মতো এগুলো env var-এ লুকাতে হয়নি।)
+// এই config ভ্যালুগুলো সিক্রেট না — ব্রাউজারে থাকা স্বাভাবিক।
+// আসল নিরাপত্তা আসে Firestore/Auth এর Security Rules থেকে, এই key থেকে না।
+// তোমার Vercel এ আগে থেকেই NEXT_PUBLIC_FIREBASE_* ভ্যারিয়েবলগুলো বসানো আছে,
+// তাই এখানে সেগুলোই পড়া হচ্ছে (হার্ডকোড না করে) — লোকাল এ চালাতে হলে
+// .env.local এও এই একই নামে ভ্যালুগুলো বসাতে হবে।
 const firebaseConfig = {
-  apiKey: "AIzaSyAjBBEiktZ7qJ2b_J6Q-T7nG5x8u68-b7s",
-  authDomain: "cash-flow-11f2d.firebaseapp.com",
-  projectId: "cash-flow-11f2d",
-  storageBucket: "cash-flow-11f2d.firebasestorage.app",
-  messagingSenderId: "874104841202",
-  appId: "1:874104841202:web:036e145a33021a016fc16b",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 const wasAlreadyInitialized = getApps().length > 0;

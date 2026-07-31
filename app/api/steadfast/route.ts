@@ -23,6 +23,22 @@ type Action =
   | "status_by_trackingcode"
   | "get_balance";
 
+// ডায়াগনস্টিক: /api/steadfast এ GET করলে (ব্রাউজারে সরাসরি লিংক খুলে) বলে দেবে
+// Vercel আসলে key দুইটা পাচ্ছে কিনা, আর শেষ ৪ ক্যারেক্টার মিলিয়ে দেখা যাবে Steadfast
+// প্যানেলের বর্তমান key এর সাথে মিলছে কিনা — পুরো key কখনো এখানে দেখাবে না।
+export async function GET() {
+  const apiKey = process.env.STEADFAST_API_KEY?.trim();
+  const secretKey = process.env.STEADFAST_SECRET_KEY?.trim();
+  return NextResponse.json({
+    STEADFAST_API_KEY: apiKey
+      ? { present: true, length: apiKey.length, last4: apiKey.slice(-4) }
+      : { present: false },
+    STEADFAST_SECRET_KEY: secretKey
+      ? { present: true, length: secretKey.length, last4: secretKey.slice(-4) }
+      : { present: false },
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const headers = getAuthHeaders();
