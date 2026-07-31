@@ -18,8 +18,10 @@ import {
   DollarSign,
   ClipboardList,
   Truck,
+  UserCog,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { PermissionKey } from "@/lib/types";
 
 export type DashboardTab =
   | "overview"
@@ -31,9 +33,23 @@ export type DashboardTab =
   | "dollarrate"  // নতুন — ডলার রেট
   | "dailyreport" // নতুন — দৈনিক রিপোর্ট
   | "courier"     // নতুন — Steadfast কুরিয়ার
+  | "team"        // নতুন — টিম/মডারেটর (শুধু মালিক)
   | "forecast"
   | "alerts"
   | "settings";
+
+// যেই ট্যাবগুলোর জন্য নির্দিষ্ট permission লাগে — বাকিগুলো (undefined) সব সময় দেখা যাবে
+const TAB_PERMISSION: Partial<Record<DashboardTab, PermissionKey>> = {
+  orders: "orders",
+  courier: "orders",
+  adspend: "dailyAdSpend",
+  expenses: "expenses",
+  purchases: "productPurchases",
+  dollarrate: "dollarRates",
+  partners: "partners",
+};
+// এই ট্যাবগুলো শুধু মালিক (owner) দেখবে
+const OWNER_ONLY_TABS: DashboardTab[] = ["team", "settings", "forecast"];
 
 const NAV_ITEMS: {
   id: DashboardTab;
@@ -51,6 +67,7 @@ const NAV_ITEMS: {
   { id: "adspend", label: "অ্যাড খরচ", shortLabel: "অ্যাড", icon: Megaphone },
   { id: "dollarrate", label: "ডলার রেট", shortLabel: "ডলার", icon: DollarSign, isNew: true },
   { id: "expenses", label: "অন্য খরচ", shortLabel: "খরচ", icon: Wallet },
+  { id: "team", label: "টিম", shortLabel: "টিম", icon: UserCog, isNew: true },
   { id: "forecast", label: "ফোরকাস্ট", shortLabel: "ফোরকাস্ট", icon: LineChart },
   { id: "alerts", label: "সতর্কতা", shortLabel: "সতর্কতা", icon: AlertTriangle },
   { id: "settings", label: "সেটিংস", shortLabel: "সেটিংস", icon: Settings },
@@ -68,18 +85,29 @@ export default function Sidebar({
   active,
   onChange,
   alertCount,
+  isOwner = true,
+  permissions,
 }: {
   active: DashboardTab;
   onChange: (tab: DashboardTab) => void;
   alertCount: number;
+  isOwner?: boolean;
+  permissions?: Partial<Record<PermissionKey, boolean>>;
 }) {
   const { logout, user } = useAuth();
   const [showMore, setShowMore] = useState(false);
 
-  const primaryItems = NAV_ITEMS.filter((i) =>
+  const visibleItems = NAV_ITEMS.filter((i) => {
+    if (OWNER_ONLY_TABS.includes(i.id) && !isOwner) return false;
+    const requiredPerm = TAB_PERMISSION[i.id];
+    if (requiredPerm && permissions && !permissions[requiredPerm]) return false;
+    return true;
+  });
+
+  const primaryItems = visibleItems.filter((i) =>
     MOBILE_PRIMARY_IDS.includes(i.id)
   );
-  const moreItems = NAV_ITEMS.filter(
+  const moreItems = visibleItems.filter(
     (i) => !MOBILE_PRIMARY_IDS.includes(i.id)
   );
   const moreActive = moreItems.some((i) => i.id === active);
@@ -98,7 +126,7 @@ export default function Sidebar({
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = active === item.id;
             return (

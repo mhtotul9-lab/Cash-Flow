@@ -25,7 +25,7 @@ interface AuthContextType {
     email: string,
     password: string,
     businessName: string
-  ) => Promise<void>;
+  ) => Promise<import("firebase/auth").UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       currency: "BDT",
       createdAt: serverTimestamp(),
     });
+    return cred;
   }
 
   async function logout() {

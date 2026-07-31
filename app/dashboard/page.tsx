@@ -27,11 +27,13 @@ import ProductPurchaseTab from "../components/ProductPurchaseTab";
 import DollarRateTab from "../components/DollarRateTab";
 import DailyReportTab from "../components/DailyReportTab";
 import CourierTab from "../components/CourierTab";
+import TeamTab from "../components/TeamTab";
+import { useWorkspace } from "@/lib/workspace";
 import { Order, Partner, CommissionPayment, DollarRate, ProductPurchase } from "@/lib/types";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const uid = user?.uid;
+  const { dataUid: uid, isOwner, permissions, loading: workspaceLoading } = useWorkspace(user);
   const [tab, setTab] = useState<DashboardTab>("overview");
 
   // ডেটা হুক
@@ -158,11 +160,22 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-[var(--bg-base)]">
-      <Sidebar active={tab} onChange={setTab} alertCount={alerts.length} />
+      <Sidebar
+        active={tab}
+        onChange={setTab}
+        alertCount={alerts.length}
+        isOwner={isOwner}
+        permissions={permissions}
+      />
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-5 md:py-8">
-
+          {workspaceLoading ? (
+            <div className="flex items-center justify-center py-24 text-sm text-[var(--text-faint)]">
+              লোড হচ্ছে...
+            </div>
+          ) : (
+          <>
           {tab === "overview" && (
             <OverviewTab
               position={position}
@@ -251,6 +264,10 @@ export default function DashboardPage() {
 
           {tab === "settings" && (
             <SettingsTab position={position} onSave={savePosition} />
+          )}
+
+          {tab === "team" && uid && <TeamTab ownerUid={uid} />}
+          </>
           )}
         </div>
         <div className="mobile-nav-spacer md:hidden" />

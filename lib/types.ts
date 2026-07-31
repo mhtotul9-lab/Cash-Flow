@@ -200,3 +200,45 @@ export interface Alert {
   message: string;
   createdAt: number;
 }
+
+// ========== টিম / মডারেটর (নতুন) ==========
+
+// এই কালেকশনের নামগুলোই Firestore rules এ permission key হিসেবে ব্যবহার হয় —
+// তাই lib/firestore-hooks.ts এর কালেকশন নামের সাথে হুবহু মিলতে হবে
+export const PERMISSION_MODULES: { key: PermissionKey; label: string }[] = [
+  { key: "orders", label: "অর্ডার" },
+  { key: "dailyAdSpend", label: "অ্যাড খরচ" },
+  { key: "expenses", label: "অন্য খরচ" },
+  { key: "productPurchases", label: "প্রোডাক্ট কেনা" },
+  { key: "dollarRates", label: "ডলার রেট" },
+  { key: "partners", label: "পার্টনার ও কমিশন" },
+];
+
+export type PermissionKey =
+  | "orders"
+  | "dailyAdSpend"
+  | "expenses"
+  | "productPurchases"
+  | "dollarRates"
+  | "partners";
+
+export type WorkspacePermissions = Record<PermissionKey, boolean>;
+
+export interface TeamMember {
+  id: string;
+  email: string;
+  permissions: WorkspacePermissions;
+  status: "pending" | "active";
+  createdAt: number;
+  memberUid?: string; // অ্যাক্সেপ্ট করার পর তাদের নিজের Firebase uid
+}
+
+export interface TeamInvite {
+  code: string;
+  ownerUid: string;
+  ownerBusinessName?: string;
+  email: string;
+  permissions: WorkspacePermissions;
+  teamMemberId: string;
+  createdAt: number;
+}

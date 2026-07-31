@@ -1,0 +1,13 @@
+{
+  "name": "হিসাবের খাতা | কাপড় বিজনেস ক্যাশ ফ্লো",
+  "short_name": "হিসাবের খাতা",
+  "description": "পাইকারি কাপড় বিজনেসের জন্য ক্যাশ ফ্লো হিসাব",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#F7F3EA",
+  "theme_color": "#9A6F35",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" }
+  ]
+}

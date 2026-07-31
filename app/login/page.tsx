@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { BookOpen, Lock, Mail, Store } from "lucide-react";
+import { acceptInvite } from "@/lib/workspace";
+import { BookOpen, Lock, Mail, Store, Users } from "lucide-react";
 
-export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+function LoginPageInner() {
+  const searchParams = useSearchParams();
+  const inviteCode = searchParams.get("invite");
+  const [mode, setMode] = useState<"login" | "register">(inviteCode ? "register" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -15,6 +18,10 @@ export default function LoginPage() {
   const { login, register } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (inviteCode) setMode("register");
+  }, [inviteCode]);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -22,6 +29,9 @@ export default function LoginPage() {
     try {
       if (mode === "login") {
         await login(email, password);
+      } else if (inviteCode) {
+        const cred = await register(email, password, "মডারেটর অ্যাকাউন্ট");
+        await acceptInvite(inviteCode, cred?.user?.uid ?? "");
       } else {
         await register(email, password, businessName);
       }
@@ -56,28 +66,37 @@ export default function LoginPage() {
           </span>
         </div>
 
-        <div className="receipt-card border border-[var(--border-subtle)] rounded-2xl p-7 shadow-sm">
-          <div className="flex gap-1 mb-6 bg-[var(--bg-base)] rounded-lg p-1">
-            <button
-              onClick={() => setMode("login")}
-              className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === "login" ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)]"
-              }`}
-            >
-              লগইন
-            </button>
-            <button
-              onClick={() => setMode("register")}
-              className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === "register" ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)]"
-              }`}
-            >
-              নতুন অ্যাকাউন্ট
-            </button>
+        {inviteCode && (
+          <div className="flex items-center gap-2 bg-[var(--mustard-soft)] text-[var(--brown-deep)] text-sm rounded-lg px-3.5 py-2.5 mb-4">
+            <Users className="w-4 h-4 shrink-0" />
+            তোমাকে মডারেটর হিসেবে ইনভাইট করা হয়েছে — অ্যাকাউন্ট বানিয়ে জয়েন করো
           </div>
+        )}
+
+        <div className="receipt-card border border-[var(--border-subtle)] rounded-2xl p-7 shadow-sm">
+          {!inviteCode && (
+            <div className="flex gap-1 mb-6 bg-[var(--bg-base)] rounded-lg p-1">
+              <button
+                onClick={() => setMode("login")}
+                className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+                  mode === "login" ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)]"
+                }`}
+              >
+                লগইন
+              </button>
+              <button
+                onClick={() => setMode("register")}
+                className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+                  mode === "register" ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)]"
+                }`}
+              >
+                নতুন অ্যাকাউন্ট
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "register" && (
+            {mode === "register" && !inviteCode && (
               <div>
                 <label className="text-xs text-[var(--text-muted)] mb-1.5 block">ব্যবসার নাম</label>
                 <div className="relative">
@@ -130,9 +149,9 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-[var(--brown)] text-white font-medium rounded-lg py-2.5 text-sm hover:opacity-90 transition-opacity disabled:opacity-50 mt-2"
+              className="w-full btn-gradient text-white font-medium rounded-lg py-2.5 text-sm disabled:opacity-50 mt-2 btn-press"
             >
-              {submitting ? "প্রসেসিং..." : mode === "login" ? "খাতা খুলুন" : "অ্যাকাউন্ট তৈরি করুন"}
+              {submitting ? "প্রসেসিং..." : inviteCode ? "জয়েন করো" : mode === "login" ? "খাতা খুলুন" : "অ্যাকাউন্ট তৈরি করুন"}
             </button>
           </form>
         </div>
@@ -142,5 +161,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   );
 }
