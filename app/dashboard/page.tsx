@@ -169,7 +169,7 @@ export default function DashboardPage() {
       />
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-5 md:py-8">
+        <div key={tab} className="max-w-5xl mx-auto px-4 md:px-8 py-5 md:py-8 animate-fade-in">
           {workspaceLoading ? (
             <div className="flex items-center justify-center py-24 text-sm text-[var(--text-faint)]">
               লোড হচ্ছে...

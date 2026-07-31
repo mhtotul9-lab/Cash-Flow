@@ -55,13 +55,16 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen w-full flex items-center justify-center px-4 relative overflow-hidden bg-[image:var(--gradient-brown)]">
+      <div className="absolute -top-24 -left-16 w-72 h-72 rounded-full bg-white/10 blur-2xl" />
+      <div className="absolute -bottom-28 -right-20 w-80 h-80 rounded-full bg-white/10 blur-2xl" />
+      <div className="absolute top-1/3 right-1/4 w-24 h-24 rounded-full bg-white/10 blur-xl hidden sm:block" />
+      <div className="w-full max-w-md relative animate-fade-in">
         <div className="flex items-center gap-2.5 mb-8 justify-center">
-          <div className="w-10 h-10 rounded-full bg-[var(--brown)]/10 flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-[var(--brown)]" strokeWidth={2} />
+          <div className="w-11 h-11 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center shadow-lg">
+            <BookOpen className="w-5 h-5 text-white" strokeWidth={2} />
           </div>
-          <span className="font-[family-name:var(--font-display)] font-semibold text-xl tracking-tight">
+          <span className="font-[family-name:var(--font-display)] font-semibold text-xl tracking-tight text-white">
             হিসাবের খাতা
           </span>
         </div>
@@ -156,7 +159,7 @@ function LoginPageInner() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-[var(--text-faint)] mt-5">
+        <p className="text-center text-xs text-white/70 mt-5">
           ডাইরেক্ট সেল ও পার্টনার সেল — দুই হিসাব একসাথে, পরিষ্কারভাবে
         </p>
       </div>

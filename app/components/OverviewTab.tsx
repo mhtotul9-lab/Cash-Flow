@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Wallet, Megaphone, Store, TrendingUp, Sparkles, Loader2, HelpCircle, RotateCcw, CalendarDays } from "lucide-react";
 import StatCard from "./StatCard";
+import { useAuth } from "@/lib/auth-context";
 import { CashPosition, KPISet, Alert, Order } from "@/lib/types";
 import { netAvailableCash, sum } from "@/lib/calculations";
 
@@ -34,6 +35,7 @@ export default function OverviewTab({
   alerts: Alert[];
 }) {
   const netCash = netAvailableCash(position);
+  const { user } = useAuth();
   const [aiLoading, setAiLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[] | null>(null);
   const [aiError, setAiError] = useState("");
@@ -77,11 +79,38 @@ export default function OverviewTab({
   );
   const todayReturnAmount = useMemo(() => sum(todayReturns.map((o) => o.returnAmount || o.sellPrice)), [todayReturns]);
 
+  const BN_MONTHS = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+  const BN_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  const toBnNum = (n: number) => String(n).split("").map((d) => BN_DIGITS[Number(d)] ?? d).join("");
+  const now = new Date();
+  const bnDateStr = `${toBnNum(now.getDate())} ${BN_MONTHS[now.getMonth()]}, ${toBnNum(now.getFullYear())}`;
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "সুপ্রভাত" : hour < 17 ? "শুভ দুপুর" : "শুভ সন্ধ্যা";
+  const businessLabel = user?.email?.split("@")[0] ?? "";
+
   return (
     <div className="space-y-5 sm:space-y-6">
-      <div>
-        <h2 className="font-[family-name:var(--font-display)] text-lg sm:text-xl font-medium mb-1">ওভারভিউ</h2>
-        <p className="text-xs text-[var(--text-faint)]">তোমার ব্যবসার আজকের অবস্থা — এক নজরে</p>
+      <div className="relative overflow-hidden rounded-2xl px-5 py-6 sm:px-7 sm:py-8 bg-[image:var(--gradient-brown)] animate-fade-in">
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
+        <div className="absolute -bottom-14 -left-6 w-32 h-32 rounded-full bg-white/10" />
+        <div className="relative flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-white/75 text-xs sm:text-sm mb-1">{greeting}{businessLabel ? `, ${businessLabel}` : ""} 👋</p>
+            <h2 className="font-[family-name:var(--font-display)] text-white text-xl sm:text-2xl font-medium mb-1.5">
+              ওভারভিউ
+            </h2>
+            <p className="text-white/70 text-xs flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5" />
+              {bnDateStr}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-white/70 text-[11px] mb-1">মোট নেট প্রফিট</p>
+            <p className={`num font-[family-name:var(--font-mono)] text-2xl sm:text-3xl font-medium ${kpis.netProfit < 0 ? "text-[#FFD9D9]" : "text-white"}`}>
+              {kpis.netProfit < 0 ? "−" : ""}৳{Math.abs(kpis.netProfit).toLocaleString("en-BD")}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 stagger">
