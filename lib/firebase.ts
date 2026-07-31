@@ -2,13 +2,16 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { initializeFirestore, getFirestore } from "firebase/firestore";
 
+// Firebase-এর এই config ভ্যালুগুলো সিক্রেট না — ব্রাউজারে থাকা স্বাভাবিক।
+// আসল সিকিউরিটি আসে Firestore/Auth এর Security Rules থেকে, এই key থেকে না।
+// (এই কারণেই Steadfast-এর মতো এগুলো env var-এ লুকাতে হয়নি।)
 const firebaseConfig = {
-  apiKey: process.env.AIzaSyAjBBEiktZ7qJ2b_J6Q-T7nG5x8u68-b7s,
-  authDomain: process.env.cash-flow-11f2d.firebaseapp.com,
-  projectId: process.env.cash-flow-11f2d,
-  storageBucket: process.env.cash-flow-11f2d.firebasestorage.app,
-  messagingSenderId: process.env.874104841202,
-  appId: process.env.1:874104841202:web:036e145a33021a016fc16b,
+  apiKey: "AIzaSyAjBBEiktZ7qJ2b_J6Q-T7nG5x8u68-b7s",
+  authDomain: "cash-flow-11f2d.firebaseapp.com",
+  projectId: "cash-flow-11f2d",
+  storageBucket: "cash-flow-11f2d.firebasestorage.app",
+  messagingSenderId: "874104841202",
+  appId: "1:874104841202:web:036e145a33021a016fc16b",
 };
 
 const wasAlreadyInitialized = getApps().length > 0;
