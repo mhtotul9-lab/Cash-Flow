@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { X, Trash2 } from "lucide-react";
+import { X, Trash2, Pencil } from "lucide-react";
 
 export default function FormPanel({
   title,
@@ -69,11 +69,13 @@ export function DataTable<T extends { id: string }>({
   columns,
   rows,
   onDelete,
+  onEdit,
   emptyMessage,
 }: {
   columns: ColumnDef<T>[];
   rows: T[];
   onDelete?: (id: string) => void;
+  onEdit?: (row: T) => void;
   emptyMessage: string;
 }) {
   if (rows.length === 0) {
@@ -98,7 +100,7 @@ export function DataTable<T extends { id: string }>({
                   {col.header}
                 </th>
               ))}
-              {onDelete && <th className="w-9 sm:w-10" />}
+              {(onEdit || onDelete) && <th className="w-16 sm:w-20" />}
             </tr>
           </thead>
           <tbody>
@@ -112,14 +114,28 @@ export function DataTable<T extends { id: string }>({
                     {col.render(row)}
                   </td>
                 ))}
-                {onDelete && (
+                {(onEdit || onDelete) && (
                   <td className="px-1.5 sm:px-2">
-                    <button
-                      onClick={() => onDelete(row.id)}
-                      className="text-[var(--text-faint)] hover:text-[var(--red)] transition-colors p-1.5 btn-press"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-0.5">
+                      {onEdit && (
+                        <button
+                          onClick={() => onEdit(row)}
+                          className="text-[var(--text-faint)] hover:text-[var(--brown)] transition-colors p-1.5 btn-press"
+                          title="এডিট করো"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={() => onDelete(row.id)}
+                          className="text-[var(--text-faint)] hover:text-[var(--red)] transition-colors p-1.5 btn-press"
+                          title="মুছে ফেলো"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

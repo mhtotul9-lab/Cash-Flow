@@ -16,33 +16,61 @@ const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   misc: "বিবিধ",
 };
 
+const emptyForm = {
+  date: new Date().toISOString().slice(0, 10),
+  category: "misc" as ExpenseCategory,
+  amount: "",
+  note: "",
+};
+
 export default function ExpensesTab({
   expenses,
   onAdd,
   onDelete,
+  onUpdate,
 }: {
   expenses: ExpenseEntry[];
   onAdd: (entry: Omit<ExpenseEntry, "id" | "createdAt">) => Promise<string | void>;
   onDelete: (id: string) => Promise<void>;
+  onUpdate?: (id: string, patch: Partial<ExpenseEntry>) => Promise<void>;
 }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    category: "misc" as ExpenseCategory,
-    amount: "",
-    note: "",
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+
+  function openAdd() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowForm(true);
+  }
+
+  function openEdit(entry: ExpenseEntry) {
+    setEditingId(entry.id);
+    setForm({
+      date: entry.date,
+      category: entry.category,
+      amount: String(entry.amount),
+      note: entry.note || "",
+    });
+    setShowForm(true);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await onAdd({
+    const payload = {
       date: form.date,
       category: form.category,
       amount: parseFloat(form.amount) || 0,
       note: form.note,
-    });
+    };
+    if (editingId && onUpdate) {
+      await onUpdate(editingId, payload);
+    } else {
+      await onAdd(payload);
+    }
     setShowForm(false);
-    setForm({ ...form, amount: "", note: "" });
+    setEditingId(null);
+    setForm(emptyForm);
   }
 
   const columns: ColumnDef<ExpenseEntry>[] = [
@@ -60,7 +88,7 @@ export default function ExpensesTab({
           <p className="text-xs text-[var(--text-faint)] mt-0.5">যেসব খরচ নির্দিষ্ট অর্ডারের সাথে যুক্ত না — বাল্ক কাপড় কেনা, বেতন, ভাড়া</p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={openAdd}
           className="flex items-center justify-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2.5 sm:py-2 rounded-lg hover:opacity-90 transition-opacity btn-press"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -68,10 +96,15 @@ export default function ExpensesTab({
         </button>
       </div>
 
-      <DataTable columns={columns} rows={expenses} onDelete={onDelete} emptyMessage="এখনো কোনো খরচ লেখা হয়নি।" />
+      <DataTable columns={columns} rows={expenses} onDelete={onDelete} onEdit={onUpdate ? openEdit : undefined} emptyMessage="এখনো কোনো খরচ লেখা হয়নি।" />
 
       {showForm && (
-        <FormPanel title="নতুন খরচ এন্ট্রি" onClose={() => setShowForm(false)} onSubmit={handleSubmit}>
+        <FormPanel
+          title={editingId ? "খরচ এডিট করো" : "নতুন খরচ এন্ট্রি"}
+          onClose={() => setShowForm(false)}
+          onSubmit={handleSubmit}
+          submitLabel={editingId ? "আপডেট করো" : "সেভ করুন"}
+        >
           <div>
             <FieldLabel>তারিখ</FieldLabel>
             <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className={inputClass} />

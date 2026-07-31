@@ -17,14 +17,17 @@ export default function AdSpendTab({
   dailyAdSpend,
   onAdd,
   onDelete,
+  onUpdate,
   latestDollarRate,
 }: {
   dailyAdSpend: DailyAdSpend[];
   onAdd: (entry: Omit<DailyAdSpend, "id" | "createdAt">) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onUpdate?: (id: string, patch: Partial<DailyAdSpend>) => Promise<void>;
   latestDollarRate: number;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [useUSD, setUseUSD] = useState(true); // ডিফল্ট ডলারে
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -34,6 +37,34 @@ export default function AdSpendTab({
     dollarRate: latestDollarRate.toString(),
     note: "",
   });
+
+  function openAdd() {
+    setEditingId(null);
+    setUseUSD(true);
+    setForm({
+      date: new Date().toISOString().slice(0, 10),
+      category: "facebook",
+      amount: "",
+      amountUSD: "",
+      dollarRate: latestDollarRate.toString(),
+      note: "",
+    });
+    setShowForm(true);
+  }
+
+  function openEdit(d: DailyAdSpend) {
+    setEditingId(d.id);
+    setUseUSD(!!d.amountUSD);
+    setForm({
+      date: d.date,
+      category: d.category,
+      amount: String(d.amount),
+      amountUSD: d.amountUSD ? String(d.amountUSD) : "",
+      dollarRate: d.dollarRate ? String(d.dollarRate) : latestDollarRate.toString(),
+      note: d.note || "",
+    });
+    setShowForm(true);
+  }
 
   const amountBDT = useUSD
     ? round2(
@@ -48,15 +79,22 @@ export default function AdSpendTab({
     const usd = parseFloat(form.amountUSD) || 0;
     const bdt = useUSD ? round2(usd * rate) : parseFloat(form.amount) || 0;
 
-    await onAdd({
+    const payload = {
       date: form.date,
       category: form.category,
       amount: bdt,
       amountUSD: useUSD ? usd : undefined,
       dollarRate: useUSD ? rate : undefined,
       note: form.note,
-    });
+    };
+
+    if (editingId && onUpdate) {
+      await onUpdate(editingId, payload);
+    } else {
+      await onAdd(payload);
+    }
     setShowForm(false);
+    setEditingId(null);
     setForm({
       date: new Date().toISOString().slice(0, 10),
       category: "facebook",
@@ -125,7 +163,7 @@ export default function AdSpendTab({
           </p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={openAdd}
           className="flex items-center justify-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2.5 sm:py-2 rounded-lg hover:opacity-90 transition-opacity btn-press"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -148,14 +186,16 @@ export default function AdSpendTab({
         columns={columns}
         rows={dailyAdSpend}
         onDelete={onDelete}
+        onEdit={onUpdate ? openEdit : undefined}
         emptyMessage="এখনো কোনো অ্যাড খরচ লেখা হয়নি।"
       />
 
       {showForm && (
         <FormPanel
-          title="নতুন অ্যাড খরচ"
+          title={editingId ? "অ্যাড খরচ এডিট করো" : "নতুন অ্যাড খরচ"}
           onClose={() => setShowForm(false)}
           onSubmit={handleSubmit}
+          submitLabel={editingId ? "আপডেট করো" : "সেভ করুন"}
         >
           <div>
             <FieldLabel>তারিখ</FieldLabel>

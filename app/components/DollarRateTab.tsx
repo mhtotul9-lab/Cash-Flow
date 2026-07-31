@@ -9,26 +9,47 @@ export default function DollarRateTab({
   dollarRates,
   onAdd,
   onDelete,
+  onUpdate,
 }: {
   dollarRates: DollarRate[];
   onAdd: (entry: Omit<DollarRate, "id" | "createdAt">) => Promise<string | void>;
   onDelete: (id: string) => Promise<void>;
+  onUpdate?: (id: string, patch: Partial<DollarRate>) => Promise<void>;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     rate: "",
     note: "",
   });
 
+  function openAdd() {
+    setEditingId(null);
+    setForm({ date: new Date().toISOString().slice(0, 10), rate: "", note: "" });
+    setShowForm(true);
+  }
+
+  function openEdit(entry: DollarRate) {
+    setEditingId(entry.id);
+    setForm({ date: entry.date, rate: String(entry.rate), note: entry.note || "" });
+    setShowForm(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await onAdd({
+    const payload = {
       date: form.date,
       rate: parseFloat(form.rate) || 0,
       note: form.note,
-    });
+    };
+    if (editingId && onUpdate) {
+      await onUpdate(editingId, payload);
+    } else {
+      await onAdd(payload);
+    }
     setShowForm(false);
+    setEditingId(null);
     setForm({ date: new Date().toISOString().slice(0, 10), rate: "", note: "" });
   }
 
@@ -71,7 +92,7 @@ export default function DollarRateTab({
           </p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={openAdd}
           className="flex items-center justify-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2.5 sm:py-2 rounded-lg hover:opacity-90 transition-opacity btn-press"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -115,15 +136,16 @@ export default function DollarRateTab({
         columns={columns}
         rows={dollarRates}
         onDelete={onDelete}
+        onEdit={onUpdate ? openEdit : undefined}
         emptyMessage="এখনো কোনো ডলার রেট লগ করা হয়নি।"
       />
 
       {showForm && (
         <FormPanel
-          title="আজকের ডলার রেট"
+          title={editingId ? "রেট এডিট করো" : "আজকের ডলার রেট"}
           onClose={() => setShowForm(false)}
           onSubmit={handleSubmit}
-          submitLabel="সেভ করো"
+          submitLabel={editingId ? "আপডেট করো" : "সেভ করো"}
         >
           <div>
             <FieldLabel>তারিখ</FieldLabel>

@@ -60,6 +60,7 @@ export default function OrdersTab({
   const [editingAdSpend, setEditingAdSpend] = useState<Order | null>(null);
   const [adSpendValue, setAdSpendValue] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [steadfastBusyId, setSteadfastBusyId] = useState<string | null>(null);
 
   async function handleSendToSteadfast(order: Order) {
@@ -169,7 +170,7 @@ export default function OrdersTab({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await onAdd({
+    const payload = {
       date: form.date,
       source: form.source,
       partnerId: form.source === "partner" ? form.partnerId || null : null,
@@ -194,10 +195,43 @@ export default function OrdersTab({
       recipientName: form.recipientName || undefined,
       recipientPhone: form.recipientPhone || undefined,
       recipientAddress: form.recipientAddress || undefined,
-    });
+    };
+    if (editingId) {
+      await onUpdate(editingId, payload);
+    } else {
+      await onAdd(payload);
+    }
     setShowForm(false);
     setShowAdvanced(false);
+    setEditingId(null);
     setForm(emptyForm);
+  }
+
+  function openEdit(o: Order) {
+    setEditingId(o.id);
+    setForm({
+      date: o.date,
+      source: o.source,
+      partnerId: o.partnerId || "",
+      productName: o.productName,
+      sellPrice: String(o.sellPrice),
+      productCost: String(o.productCost),
+      productCostUSD: o.productCostUSD ? String(o.productCostUSD) : "",
+      dollarRate: o.dollarRate ? String(o.dollarRate) : "",
+      useDollar: !!o.productCostUSD,
+      adSpendMode: o.adSpendMode,
+      adSpend: String(o.adSpend),
+      callPackagingCost: String(o.callPackagingCost),
+      otherCost: String(o.otherCost),
+      isReturned: o.isReturned,
+      returnAmount: String(o.returnAmount || ""),
+      paymentReceived: o.paymentReceived,
+      note: o.note || "",
+      recipientName: o.recipientName || "",
+      recipientPhone: o.recipientPhone || "",
+      recipientAddress: o.recipientAddress || "",
+    });
+    setShowForm(true);
   }
 
   const columns: ColumnDef<Order>[] = [
@@ -300,7 +334,11 @@ export default function OrdersTab({
             Excel আপলোড
           </button>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setEditingId(null);
+              setForm(emptyForm);
+              setShowForm(true);
+            }}
             className="flex items-center justify-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2.5 sm:py-2 rounded-lg hover:opacity-90 transition-opacity btn-press"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -309,10 +347,16 @@ export default function OrdersTab({
         </div>
       </div>
 
-      <DataTable columns={columns} rows={orders} onDelete={onDelete} emptyMessage="এখনো কোনো অর্ডার নেই। প্রথম অর্ডারটা যোগ করো।" />
+      <DataTable columns={columns} rows={orders} onDelete={onDelete} onEdit={openEdit} emptyMessage="এখনো কোনো অর্ডার নেই। প্রথম অর্ডারটা যোগ করো।" />
 
       {showForm && (
-        <FormPanel title="নতুন অর্ডার" onClose={() => setShowForm(false)} onSubmit={handleSubmit} submitLabel="অর্ডার সেভ করুন" wide>
+        <FormPanel
+          title={editingId ? "অর্ডার এডিট করো" : "নতুন অর্ডার"}
+          onClose={() => setShowForm(false)}
+          onSubmit={handleSubmit}
+          submitLabel={editingId ? "আপডেট করো" : "অর্ডার সেভ করুন"}
+          wide
+        >
           <div className="grid sm:grid-cols-2 gap-5">
             <div className="space-y-3.5">
               <div>

@@ -10,13 +10,16 @@ export default function PartnersTab({
   onAdd,
   onDelete,
   onAddPayment,
+  onUpdate,
 }: {
   partners: Partner[];
   onAdd: (entry: Omit<Partner, "id" | "createdAt">) => Promise<string | void>;
   onDelete: (id: string) => Promise<void>;
   onAddPayment: (entry: Omit<CommissionPayment, "id" | "createdAt">, partner: Partner) => Promise<void>;
+  onUpdate?: (id: string, patch: Partial<Partner>) => Promise<void>;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [payingPartner, setPayingPartner] = useState<Partner | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [form, setForm] = useState({
@@ -27,20 +30,49 @@ export default function PartnersTab({
     commissionValue: "",
   });
 
+  function openAdd() {
+    setEditingId(null);
+    setForm({ name: "", area: "", phone: "", commissionType: "fixed", commissionValue: "" });
+    setShowForm(true);
+  }
+
+  function openEdit(p: Partner) {
+    setEditingId(p.id);
+    setForm({
+      name: p.name,
+      area: p.area || "",
+      phone: p.phone || "",
+      commissionType: p.commissionType,
+      commissionValue: String(p.commissionValue),
+    });
+    setShowForm(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await onAdd({
-      name: form.name,
-      area: form.area,
-      phone: form.phone,
-      commissionType: form.commissionType,
-      commissionValue: parseFloat(form.commissionValue) || 0,
-      totalOrders: 0,
-      totalCommissionDue: 0,
-      totalCommissionPaid: 0,
-      active: true,
-    });
+    if (editingId && onUpdate) {
+      await onUpdate(editingId, {
+        name: form.name,
+        area: form.area,
+        phone: form.phone,
+        commissionType: form.commissionType,
+        commissionValue: parseFloat(form.commissionValue) || 0,
+      });
+    } else {
+      await onAdd({
+        name: form.name,
+        area: form.area,
+        phone: form.phone,
+        commissionType: form.commissionType,
+        commissionValue: parseFloat(form.commissionValue) || 0,
+        totalOrders: 0,
+        totalCommissionDue: 0,
+        totalCommissionPaid: 0,
+        active: true,
+      });
+    }
     setShowForm(false);
+    setEditingId(null);
     setForm({ name: "", area: "", phone: "", commissionType: "fixed", commissionValue: "" });
   }
 
@@ -119,7 +151,7 @@ export default function PartnersTab({
           <p className="text-xs text-[var(--text-faint)] mt-0.5">যারা তোমার প্রোডাক্ট তাদের দোকানে রাখে, প্রতি সেলে কমিশন পায়</p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={openAdd}
           className="flex items-center justify-center gap-1.5 text-xs bg-[var(--brown)] text-white font-medium px-3 py-2.5 sm:py-2 rounded-lg hover:opacity-90 transition-opacity btn-press"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -127,10 +159,21 @@ export default function PartnersTab({
         </button>
       </div>
 
-      <DataTable columns={columns} rows={partners} onDelete={onDelete} emptyMessage="এখনো কোনো পার্টনার যোগ করা হয়নি।" />
+      <DataTable
+        columns={columns}
+        rows={partners}
+        onDelete={onDelete}
+        onEdit={onUpdate ? openEdit : undefined}
+        emptyMessage="এখনো কোনো পার্টনার যোগ করা হয়নি।"
+      />
 
       {showForm && (
-        <FormPanel title="নতুন পার্টনার যোগ করো" onClose={() => setShowForm(false)} onSubmit={handleSubmit}>
+        <FormPanel
+          title={editingId ? "পার্টনার এডিট করো" : "নতুন পার্টনার যোগ করো"}
+          onClose={() => setShowForm(false)}
+          onSubmit={handleSubmit}
+          submitLabel={editingId ? "আপডেট করো" : "সেভ করুন"}
+        >
           <div>
             <FieldLabel>পার্টনারের নাম</FieldLabel>
             <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />

@@ -39,11 +39,11 @@ export default function DashboardPage() {
   // ডেটা হুক
   const { data: orders, add: addOrderRaw, bulkAdd: bulkAddOrders, remove: removeOrder, update: updateOrder } = useOrders(uid);
   const { data: partners, add: addPartner, remove: removePartner, update: updatePartner } = usePartners(uid);
-  const { data: dailyAdSpend, add: addAdSpend, remove: removeAdSpend } = useDailyAdSpend(uid);
-  const { data: expenses, add: addExpense, remove: removeExpense } = useExpenses(uid);
+  const { data: dailyAdSpend, add: addAdSpend, remove: removeAdSpend, update: updateAdSpend } = useDailyAdSpend(uid);
+  const { data: expenses, add: addExpense, remove: removeExpense, update: updateExpense } = useExpenses(uid);
   const { add: addCommissionPayment } = useCommissionPayments(uid);
-  const { data: purchases, add: addPurchase, remove: removePurchase } = useProductPurchases(uid);
-  const { data: dollarRates, add: addDollarRate, remove: removeDollarRate } = useDollarRates(uid);
+  const { data: purchases, add: addPurchase, remove: removePurchase, update: updatePurchase } = useProductPurchases(uid);
+  const { data: dollarRates, add: addDollarRate, remove: removeDollarRate, update: updateDollarRate } = useDollarRates(uid);
   const { position, save: savePosition } = useCashPosition(uid);
 
   // আজকের তারিখে ডলার রেট
@@ -214,6 +214,7 @@ export default function DashboardPage() {
               onAdd={addPartner}
               onDelete={removePartner}
               onAddPayment={handleAddPayment}
+              onUpdate={updatePartner}
             />
           )}
 
@@ -222,6 +223,7 @@ export default function DashboardPage() {
               purchases={purchases}
               onAdd={handleAddPurchase}
               onDelete={removePurchase}
+              onUpdate={updatePurchase}
               latestDollarRate={latestDollarRate}
             />
           )}
@@ -231,6 +233,7 @@ export default function DashboardPage() {
               dailyAdSpend={dailyAdSpend}
               onAdd={handleAddAdSpend}
               onDelete={removeAdSpend}
+              onUpdate={updateAdSpend}
               latestDollarRate={latestDollarRate}
             />
           )}
@@ -240,6 +243,7 @@ export default function DashboardPage() {
               dollarRates={dollarRates}
               onAdd={addDollarRate}
               onDelete={removeDollarRate}
+              onUpdate={updateDollarRate}
             />
           )}
 
@@ -248,6 +252,7 @@ export default function DashboardPage() {
               expenses={expenses}
               onAdd={addExpense}
               onDelete={removeExpense}
+              onUpdate={updateExpense}
             />
           )}
 

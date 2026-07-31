@@ -11,14 +11,17 @@ export default function ProductPurchaseTab({
   purchases,
   onAdd,
   onDelete,
+  onUpdate,
   latestDollarRate,
 }: {
   purchases: ProductPurchase[];
   onAdd: (entry: Omit<ProductPurchase, "id" | "createdAt">) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onUpdate?: (id: string, patch: Partial<ProductPurchase>) => Promise<void>;
   latestDollarRate: number;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [useDollar, setUseDollar] = useState(false);
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -33,7 +36,34 @@ export default function ProductPurchaseTab({
 
   // ফর্ম open হলে latest dollar rate সেট করা
   function openForm() {
-    setForm((f) => ({ ...f, dollarRate: latestDollarRate.toString() }));
+    setEditingId(null);
+    setUseDollar(false);
+    setForm({
+      date: new Date().toISOString().slice(0, 10),
+      productName: "",
+      quantity: "",
+      unitPrice: "",
+      unitPriceUSD: "",
+      dollarRate: latestDollarRate.toString(),
+      shippingCost: "0",
+      note: "",
+    });
+    setShowForm(true);
+  }
+
+  function openEdit(p: ProductPurchase) {
+    setEditingId(p.id);
+    setUseDollar(!!p.unitPriceUSD);
+    setForm({
+      date: p.date,
+      productName: p.productName,
+      quantity: String(p.quantity),
+      unitPrice: String(p.unitPrice),
+      unitPriceUSD: p.unitPriceUSD ? String(p.unitPriceUSD) : "",
+      dollarRate: p.dollarRate ? String(p.dollarRate) : latestDollarRate.toString(),
+      shippingCost: String(p.shippingCost),
+      note: p.note || "",
+    });
     setShowForm(true);
   }
 
@@ -57,7 +87,7 @@ export default function ProductPurchaseTab({
     const cost = useDollar ? round2(usdPrice * rate) : parseFloat(form.unitPrice) || 0;
     const shipping = parseFloat(form.shippingCost) || 0;
 
-    await onAdd({
+    const payload = {
       date: form.date,
       productName: form.productName,
       quantity: qty,
@@ -67,8 +97,15 @@ export default function ProductPurchaseTab({
       totalCost: round2(qty * cost + shipping),
       shippingCost: shipping,
       note: form.note,
-    });
+    };
+
+    if (editingId && onUpdate) {
+      await onUpdate(editingId, payload);
+    } else {
+      await onAdd(payload);
+    }
     setShowForm(false);
+    setEditingId(null);
     setForm({
       date: new Date().toISOString().slice(0, 10),
       productName: "",
@@ -214,15 +251,16 @@ export default function ProductPurchaseTab({
         columns={columns}
         rows={purchases}
         onDelete={onDelete}
+        onEdit={onUpdate ? openEdit : undefined}
         emptyMessage="এখনো কোনো কেনাকাটা এন্ট্রি নেই।"
       />
 
       {showForm && (
         <FormPanel
-          title="নতুন কেনাকাটা"
+          title={editingId ? "কেনাকাটা এডিট করো" : "নতুন কেনাকাটা"}
           onClose={() => setShowForm(false)}
           onSubmit={handleSubmit}
-          submitLabel="সেভ করো"
+          submitLabel={editingId ? "আপডেট করো" : "সেভ করো"}
         >
           <div>
             <FieldLabel>তারিখ</FieldLabel>
