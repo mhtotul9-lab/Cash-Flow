@@ -23,6 +23,11 @@
   --shadow-sm: 0 1px 2px rgba(33, 28, 22, 0.06);
   --shadow-md: 0 2px 8px rgba(33, 28, 22, 0.07), 0 1px 2px rgba(33, 28, 22, 0.05);
   --shadow-lg: 0 8px 24px rgba(33, 28, 22, 0.10), 0 2px 6px rgba(33, 28, 22, 0.06);
+  --shadow-glow: 0 12px 32px rgba(154, 111, 53, 0.16), 0 2px 8px rgba(33, 28, 22, 0.06);
+
+  --gradient-brown: linear-gradient(135deg, #9A6F35 0%, #B68C53 100%);
+  --gradient-green: linear-gradient(135deg, #1F7A52 0%, #2FA372 100%);
+  --gradient-card: linear-gradient(180deg, #FFFFFF 0%, #FCFAF4 100%);
 
   --font-display: Georgia, "Noto Serif Bengali", serif;
   --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Bengali", Roboto, sans-serif;
@@ -145,4 +150,77 @@ body {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ========== আধুনিক মোশন ইউটিলিটি ========== */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* একাধিক কার্ড একে একে ভেসে ওঠার জন্য */
+.stagger > * {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.10s; }
+.stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.stagger > *:nth-child(8) { animation-delay: 0.30s; }
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--border-subtle) 25%, var(--bg-card-soft) 50%, var(--border-subtle) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(31, 122, 82, 0.4); }
+  50%      { box-shadow: 0 0 0 5px rgba(31, 122, 82, 0); }
+}
+.pulse-dot {
+  animation: pulseDot 1.8s ease-in-out infinite;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* কার্ড হোভারে হালকা ভেসে ওঠা + গ্লো */
+.card-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+@media (hover: hover) {
+  .card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+/* গ্র্যাডিয়েন্ট প্রাইমারি বাটন */
+.btn-gradient {
+  background: var(--gradient-brown);
+  box-shadow: 0 4px 14px rgba(154, 111, 53, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-gradient:hover {
+  box-shadow: 0 6px 20px rgba(154, 111, 53, 0.36);
+}
+.btn-gradient:active {
+  transform: scale(0.97);
 }

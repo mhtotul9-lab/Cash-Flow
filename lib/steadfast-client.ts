@@ -15,7 +15,16 @@ async function callSteadfast(action: string, payload: Record<string, unknown>) {
     body: JSON.stringify({ action, payload }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Steadfast API ব্যর্থ হয়েছে");
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error(
+        "Steadfast key ভুল (401) — Vercel এর Environment Variables এ STEADFAST_API_KEY/STEADFAST_SECRET_KEY ঠিকভাবে বসানো আছে কিনা আর সেগুলো Steadfast প্যানেলের বর্তমান (regenerate করা থাকলে সর্বশেষ) key কিনা চেক করো, তারপর রিডিপ্লয় করো।"
+      );
+    }
+    const detail =
+      typeof data.details === "object" ? JSON.stringify(data.details) : data.details;
+    throw new Error(data.error || detail || "Steadfast API ব্যর্থ হয়েছে");
+  }
   return data.result;
 }
 
@@ -53,6 +62,12 @@ export function isStatusReturned(status: SteadfastStatus): boolean {
 
 export function isStatusDelivered(status: SteadfastStatus): boolean {
   return status === "delivered" || status === "partial_delivered";
+}
+
+// Steadfast অ্যাকাউন্টের বর্তমান ব্যালেন্স
+export async function getSteadfastBalance(): Promise<number | null> {
+  const result = await callSteadfast("get_balance", {});
+  return typeof result?.current_balance === "number" ? result.current_balance : null;
 }
 
 export const STATUS_LABEL_BN: Record<SteadfastStatus, string> = {

@@ -26,6 +26,7 @@ import SettingsTab from "../components/SettingsTab";
 import ProductPurchaseTab from "../components/ProductPurchaseTab";
 import DollarRateTab from "../components/DollarRateTab";
 import DailyReportTab from "../components/DailyReportTab";
+import CourierTab from "../components/CourierTab";
 import { Order, Partner, CommissionPayment, DollarRate, ProductPurchase } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -188,6 +189,10 @@ export default function DashboardPage() {
               orders={orders}
               expenses={expenses}
             />
+          )}
+
+          {tab === "courier" && (
+            <CourierTab orders={orders} onUpdate={updateOrder} />
           )}
 
           {tab === "partners" && (

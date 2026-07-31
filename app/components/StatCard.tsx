@@ -24,11 +24,24 @@ export default function StatCard({
       ? "text-[var(--mustard)]"
       : "text-[var(--text-primary)]";
 
+  const iconChip =
+    tone === "positive"
+      ? "bg-[var(--green-soft)] text-[var(--green)]"
+      : tone === "negative"
+      ? "bg-[var(--red-soft)] text-[var(--red)]"
+      : tone === "warning"
+      ? "bg-[var(--mustard-soft)] text-[var(--mustard)]"
+      : "bg-[var(--brown)]/10 text-[var(--brown)]";
+
   return (
-    <div className="card-elevated bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-3.5 sm:p-4">
-      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+    <div className="card-lift animate-fade-in bg-[image:var(--gradient-card)] border border-[var(--border-subtle)] rounded-2xl p-3.5 sm:p-4 shadow-[var(--shadow-sm)]">
+      <div className="flex items-center justify-between mb-2 sm:mb-2.5">
         <span className="text-[11px] sm:text-xs text-[var(--text-muted)] leading-tight">{label}</span>
-        {Icon && <Icon className="w-3.5 h-3.5 text-[var(--text-faint)] shrink-0" />}
+        {Icon && (
+          <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 ${iconChip}`}>
+            <Icon className="w-3.5 h-3.5" />
+          </span>
+        )}
       </div>
       <div
         className={`num font-[family-name:var(--font-mono)] text-xl sm:text-2xl font-medium tracking-tight ${toneColor}`}

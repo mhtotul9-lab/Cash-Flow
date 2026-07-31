@@ -84,7 +84,7 @@ export default function OverviewTab({
         <p className="text-xs text-[var(--text-faint)]">তোমার ব্যবসার আজকের অবস্থা — এক নজরে</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 stagger">
         <StatCard
           label="আজকের সেল"
           value={`৳${todaySell.toLocaleString("en-BD")}`}
@@ -115,7 +115,7 @@ export default function OverviewTab({
         />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 stagger">
         <StatCard
           label="মোট অর্ডার"
           value={`${kpis.totalOrders}`}
@@ -162,7 +162,7 @@ export default function OverviewTab({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 stagger">
         <StatCard label="মোট সেল (রেভিনিউ)" value={`৳${kpis.totalRevenue.toLocaleString("en-BD")}`} />
         <StatCard label="মোট কাপড়ের খরচ" value={`৳${kpis.totalProductCost.toLocaleString("en-BD")}`} />
         <StatCard label="মোট অ্যাড খরচ" value={`৳${kpis.totalAdSpend.toLocaleString("en-BD")}`} />

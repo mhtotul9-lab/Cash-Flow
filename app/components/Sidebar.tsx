@@ -17,6 +17,7 @@ import {
   Package,
   DollarSign,
   ClipboardList,
+  Truck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -29,6 +30,7 @@ export type DashboardTab =
   | "purchases"   // নতুন — প্রোডাক্ট কেনা
   | "dollarrate"  // নতুন — ডলার রেট
   | "dailyreport" // নতুন — দৈনিক রিপোর্ট
+  | "courier"     // নতুন — Steadfast কুরিয়ার
   | "forecast"
   | "alerts"
   | "settings";
@@ -43,6 +45,7 @@ const NAV_ITEMS: {
   { id: "overview", label: "ওভারভিউ", shortLabel: "হোম", icon: LayoutDashboard },
   { id: "orders", label: "অর্ডার", shortLabel: "অর্ডার", icon: ShoppingBag },
   { id: "dailyreport", label: "দৈনিক রিপোর্ট", shortLabel: "রিপোর্ট", icon: ClipboardList, isNew: true },
+  { id: "courier", label: "কুরিয়ার", shortLabel: "কুরিয়ার", icon: Truck, isNew: true },
   { id: "partners", label: "পার্টনার", shortLabel: "পার্টনার", icon: Users },
   { id: "purchases", label: "প্রোডাক্ট কেনা", shortLabel: "কেনা", icon: Package, isNew: true },
   { id: "adspend", label: "অ্যাড খরচ", shortLabel: "অ্যাড", icon: Megaphone },
@@ -86,8 +89,8 @@ export default function Sidebar({
       {/* ডেস্কটপ সাইডবার */}
       <aside className="hidden md:flex w-64 shrink-0 border-r border-[var(--border-subtle)] bg-[var(--bg-base)] flex-col">
         <div className="flex items-center gap-2.5 px-5 py-5">
-          <div className="w-8 h-8 rounded-full bg-[var(--brown)]/10 flex items-center justify-center shrink-0">
-            <BookOpen className="w-4 h-4 text-[var(--brown)]" strokeWidth={2} />
+          <div className="w-8 h-8 rounded-full bg-[image:var(--gradient-brown)] flex items-center justify-center shrink-0 shadow-[0_3px_10px_rgba(154,111,53,0.35)]">
+            <BookOpen className="w-4 h-4 text-white" strokeWidth={2} />
           </div>
           <span className="font-[family-name:var(--font-display)] font-semibold text-[15px] tracking-tight">
             হিসাবের খাতা
@@ -102,14 +105,14 @@ export default function Sidebar({
               <button
                 key={item.id}
                 onClick={() => onChange(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 relative ${
                   isActive
-                    ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm"
+                    ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-[var(--shadow-sm)] translate-x-0.5"
                     : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]/60"
                 }`}
               >
                 <Icon
-                  className="w-4 h-4 shrink-0"
+                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isActive ? "scale-110" : ""}`}
                   strokeWidth={isActive ? 2.3 : 2}
                 />
                 <span>{item.label}</span>
@@ -119,12 +122,12 @@ export default function Sidebar({
                   </span>
                 )}
                 {item.id === "alerts" && alertCount > 0 && (
-                  <span className="ml-auto bg-[var(--red)] text-white text-[10px] font-semibold rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="ml-auto bg-[var(--red)] text-white text-[10px] font-semibold rounded-full w-5 h-5 flex items-center justify-center pulse-dot">
                     {alertCount > 9 ? "9+" : alertCount}
                   </span>
                 )}
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[var(--brown)] rounded-full" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-[image:var(--gradient-brown)] transition-all duration-200" />
                 )}
               </button>
             );
