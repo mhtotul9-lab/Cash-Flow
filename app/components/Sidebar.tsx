@@ -113,13 +113,13 @@ export default function Sidebar({
 
   return (
     <>
-      {/* ডেস্কটপ সাইডবার */}
-      <aside className="hidden md:flex w-64 shrink-0 border-r border-[var(--border-subtle)] bg-[var(--bg-base)] flex-col">
+      {/* ডেস্কটপ সাইডবার — গাঢ় থিম */}
+      <aside className="hidden md:flex w-64 shrink-0 flex-col bg-[var(--sidebar-bg)]">
         <div className="flex items-center gap-2.5 px-5 py-5">
           <div className="w-8 h-8 rounded-full bg-[image:var(--gradient-brown)] flex items-center justify-center shrink-0 shadow-[0_3px_10px_rgba(154,111,53,0.35)]">
             <BookOpen className="w-4 h-4 text-white" strokeWidth={2} />
           </div>
-          <span className="font-[family-name:var(--font-display)] font-semibold text-[15px] tracking-tight">
+          <span className="font-[family-name:var(--font-display)] font-semibold text-[15px] tracking-tight text-[var(--sidebar-text)]">
             হিসাবের খাতা
           </span>
         </div>
@@ -134,12 +134,12 @@ export default function Sidebar({
                 onClick={() => onChange(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 relative ${
                   isActive
-                    ? "bg-[var(--bg-card)] text-[var(--text-primary)] shadow-[var(--shadow-sm)] translate-x-0.5"
-                    : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]/60"
+                    ? "bg-[var(--sidebar-active)] text-[var(--sidebar-text)] translate-x-0.5"
+                    : "text-[var(--sidebar-text-muted)] hover:text-[var(--sidebar-text)] hover:bg-[var(--sidebar-bg-soft)]"
                 }`}
               >
                 <Icon
-                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isActive ? "scale-110" : ""}`}
+                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isActive ? "scale-110 text-[var(--brown-soft)]" : ""}`}
                   strokeWidth={isActive ? 2.3 : 2}
                 />
                 <span>{item.label}</span>
@@ -156,13 +156,13 @@ export default function Sidebar({
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-[var(--border-subtle)]">
+        <div className="px-3 py-4 border-t border-[var(--sidebar-border)]">
           <div className="px-3 py-2 mb-1">
-            <p className="text-xs text-[var(--text-muted)] truncate">{user?.email}</p>
+            <p className="text-xs text-[var(--sidebar-text-muted)] truncate">{user?.email}</p>
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[var(--text-muted)] hover:text-[var(--red)] hover:bg-[var(--red-soft)] transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[var(--sidebar-text-muted)] hover:text-[#FF9E9E] hover:bg-white/5 transition-colors"
           >
             <LogOut className="w-4 h-4" />
             লগআউট
@@ -170,17 +170,17 @@ export default function Sidebar({
         </div>
       </aside>
 
-      {/* মোবাইল টপ হেডার */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/95 backdrop-blur-sm sticky top-0 z-30">
+      {/* মোবাইল টপ হেডার — গাঢ় থিম */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[var(--sidebar-bg)] sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-[var(--brown)]/10 flex items-center justify-center">
-            <BookOpen className="w-4 h-4 text-[var(--brown)]" strokeWidth={2} />
+          <div className="w-7 h-7 rounded-full bg-[image:var(--gradient-brown)] flex items-center justify-center shrink-0">
+            <BookOpen className="w-4 h-4 text-white" strokeWidth={2} />
           </div>
-          <span className="font-[family-name:var(--font-display)] font-semibold text-sm">
+          <span className="font-[family-name:var(--font-display)] font-semibold text-sm text-[var(--sidebar-text)]">
             হিসাবের খাতা
           </span>
         </div>
-        <button onClick={logout} className="text-[var(--text-faint)] p-1.5 -mr-1.5">
+        <button onClick={logout} className="text-[var(--sidebar-text-muted)] p-1.5 -mr-1.5">
           <LogOut className="w-4 h-4" />
         </button>
       </div>
@@ -197,10 +197,16 @@ export default function Sidebar({
                 onClick={() => onChange(item.id)}
                 className="flex flex-col items-center justify-center gap-1 btn-press relative"
               >
-                <Icon
-                  className={`w-5 h-5 ${isActive ? "text-[var(--brown)]" : "text-[var(--text-faint)]"}`}
-                  strokeWidth={isActive ? 2.4 : 2}
-                />
+                <span
+                  className={`flex items-center justify-center w-9 h-7 rounded-full transition-colors ${
+                    isActive ? "bg-[var(--brown)]/12" : ""
+                  }`}
+                >
+                  <Icon
+                    className={`w-5 h-5 ${isActive ? "text-[var(--brown)]" : "text-[var(--text-faint)]"}`}
+                    strokeWidth={isActive ? 2.4 : 2}
+                  />
+                </span>
                 <span
                   className={`text-[10px] leading-none ${
                     isActive ? "text-[var(--brown)] font-medium" : "text-[var(--text-faint)]"
@@ -208,9 +214,6 @@ export default function Sidebar({
                 >
                   {item.shortLabel}
                 </span>
-                {isActive && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[var(--brown)] rounded-full" />
-                )}
               </button>
             );
           })}
@@ -220,10 +223,19 @@ export default function Sidebar({
             onClick={() => setShowMore(true)}
             className="flex flex-col items-center justify-center gap-1 btn-press relative"
           >
-            <MoreHorizontal
-              className={`w-5 h-5 ${moreActive ? "text-[var(--brown)]" : "text-[var(--text-faint)]"}`}
-              strokeWidth={moreActive ? 2.4 : 2}
-            />
+            <span
+              className={`flex items-center justify-center w-9 h-7 rounded-full transition-colors relative ${
+                moreActive ? "bg-[var(--brown)]/12" : ""
+              }`}
+            >
+              <MoreHorizontal
+                className={`w-5 h-5 ${moreActive ? "text-[var(--brown)]" : "text-[var(--text-faint)]"}`}
+                strokeWidth={moreActive ? 2.4 : 2}
+              />
+              {alertCount > 0 && (
+                <span className="absolute top-0 right-0.5 bg-[var(--red)] w-2 h-2 rounded-full" />
+              )}
+            </span>
             <span
               className={`text-[10px] leading-none ${
                 moreActive ? "text-[var(--brown)] font-medium" : "text-[var(--text-faint)]"
@@ -231,12 +243,6 @@ export default function Sidebar({
             >
               আরও
             </span>
-            {alertCount > 0 && (
-              <span className="absolute top-1 right-[26%] bg-[var(--red)] w-2 h-2 rounded-full" />
-            )}
-            {moreActive && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[var(--brown)] rounded-full" />
-            )}
           </button>
         </div>
       </nav>

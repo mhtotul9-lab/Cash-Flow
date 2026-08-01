@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+:root {
+  --bg-base: #F7F3EA;
+  --bg-card: #FFFFFF;
+  --bg-card-soft: #FCFAF4;
+  --border-subtle: #E9E1CD;
+  --border-strong: #D6C8A3;
+  --text-primary: #211C16;
+  --text-muted: #6E6354;
+  --text-faint: #9C9080;
+
+  --brown: #9A6F35;
+  --brown-soft: #B68C53;
+  --brown-deep: #6B4D22;
+  --green: #1F7A52;
+  --green-soft: #DCF0E4;
+  --red: #C23B3B;
+  --red-soft: #FAE2E0;
+  --mustard: #B8841A;
+  --mustard-soft: #F7EBCE;
+
+  --shadow-sm: 0 1px 2px rgba(33, 28, 22, 0.06);
+  --shadow-md: 0 2px 8px rgba(33, 28, 22, 0.07), 0 1px 2px rgba(33, 28, 22, 0.05);
+  --shadow-lg: 0 8px 24px rgba(33, 28, 22, 0.10), 0 2px 6px rgba(33, 28, 22, 0.06);
+  --shadow-glow: 0 12px 32px rgba(154, 111, 53, 0.16), 0 2px 8px rgba(33, 28, 22, 0.06);
+
+  --gradient-brown: linear-gradient(135deg, #9A6F35 0%, #B68C53 100%);
+  --gradient-green: linear-gradient(135deg, #1F7A52 0%, #2FA372 100%);
+  --gradient-card: linear-gradient(180deg, #FFFFFF 0%, #FCFAF4 100%);
+
+  --sidebar-bg: #211C16;
+  --sidebar-bg-soft: #2C2419;
+  --sidebar-active: #33291B;
+  --sidebar-text: #F5EFE2;
+  --sidebar-text-muted: #A89A82;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+
+  --font-display: Georgia, "Noto Serif Bengali", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Bengali", Roboto, sans-serif;
+  --font-mono: "SF Mono", "Consolas", "Liberation Mono", monospace;
+}
+
+@theme inline {
+  --color-bg-base: var(--bg-base);
+  --color-bg-card: var(--bg-card);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-brown: var(--brown);
+  --color-green: var(--green);
+  --color-red: var(--red);
+  --color-mustard: var(--mustard);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  border-color: var(--border-subtle);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(154, 111, 53, 0.07) 1px, transparent 0);
+  background-size: 18px 18px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+}
+
+.tag-green { background: var(--green-soft); color: var(--green); }
+.tag-red { background: var(--red-soft); color: var(--red); }
+.tag-mustard { background: var(--mustard-soft); color: var(--mustard); }
+.tag-brown { background: #F1E6D2; color: var(--brown-deep); }
+
+.receipt-line {
+  border-bottom: 1px dashed var(--border-strong);
+}
+
+.receipt-card {
+  background: var(--bg-card);
+  position: relative;
+  box-shadow: var(--shadow-md);
+}
+.receipt-card::before {
+  content: "";
+  position: absolute;
+  top: -1px; left: 0; right: 0;
+  height: 8px;
+  background-image: radial-gradient(circle at 6px 0, transparent 6px, var(--bg-base) 6px);
+  background-size: 12px 8px;
+  background-repeat: repeat-x;
+}
+
+.card-elevated {
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+.card-elevated:active {
+  transform: scale(0.98);
+}
+@media (hover: hover) {
+  .card-elevated:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+}
+
+.btn-press {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brown);
+  outline-offset: 2px;
+}
+
+/* মোবাইলে নিচের নেভিগেশন বারের জন্য জায়গা রাখা */
+.mobile-nav-spacer {
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ========== আধুনিক মোশন ইউটিলিটি ========== */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* একাধিক কার্ড একে একে ভেসে ওঠার জন্য */
+.stagger > * {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.10s; }
+.stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.stagger > *:nth-child(8) { animation-delay: 0.30s; }
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--border-subtle) 25%, var(--bg-card-soft) 50%, var(--border-subtle) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(31, 122, 82, 0.4); }
+  50%      { box-shadow: 0 0 0 5px rgba(31, 122, 82, 0); }
+}
+.pulse-dot {
+  animation: pulseDot 1.8s ease-in-out infinite;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* কার্ড হোভারে হালকা ভেসে ওঠা + গ্লো */
+.card-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+@media (hover: hover) {
+  .card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+/* গ্র্যাডিয়েন্ট প্রাইমারি বাটন */
+.btn-gradient {
+  background: var(--gradient-brown);
+  box-shadow: 0 4px 14px rgba(154, 111, 53, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-gradient:hover {
+  box-shadow: 0 6px 20px rgba(154, 111, 53, 0.36);
+}
+.btn-gradient:active {
+  transform: scale(0.97);
+}
