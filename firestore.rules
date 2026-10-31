@@ -1,0 +1,172 @@
+rules_version = '2';
+
+// ============================================================================
+//  Cash Flow — Firestore Security Rules (পুরো প্রোজেক্টের জন্য)
+//  Firebase প্রোজেক্ট: cash-flow-41031
+//
+//  কাঠামো:
+//   users/{মালিকের uid}                    -> মালিকের প্রোফাইল (শুধু মালিক)
+//   users/{uid}/orders                     -> permission: orders
+//   users/{uid}/dailyAdSpend               -> permission: dailyAdSpend
+//   users/{uid}/expenses                   -> permission: expenses
+//   users/{uid}/productPurchases           -> permission: productPurchases
+//   users/{uid}/dollarRates                -> permission: dollarRates
+//   users/{uid}/partners                   -> permission: partners
+//   users/{uid}/commissionPayments         -> permission: partners
+//   users/{uid}/meta/cashPosition          -> মালিক লেখে, মেম্বাররা পড়ে
+//   users/{uid}/inboxProducts              -> ইনবক্স রিপ্লাই: মালিক লেখে, মেম্বাররা পড়ে
+//   users/{uid}/inboxSettings              -> ইনবক্স রিপ্লাই: মালিক লেখে, মেম্বাররা পড়ে
+//   users/{uid}/team/{memberId}            -> টিম লিস্ট (মালিক)
+//   teamInvites/{কোড}                      -> ইনভাইট কোড
+//   teamMemberships/{মেম্বারের uid}        -> মেম্বার কার ডেটা দেখবে + তার permission
+//
+//  মালিক = যার uid দিয়ে ডেটা সেভ হয়। মেম্বার (মডারেটর) = ইনভাইট নিয়ে জয়েন করা ইউজার।
+//  এখানে যা লেখা নেই তা সবই বন্ধ (deny)।
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------ হেল্পার ------------------------------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function membershipPath() {
+      return /databases/$(database)/documents/teamMemberships/$(request.auth.uid);
+    }
+
+    // লগইন করা ইউজার কি এই মালিকের টিমের মেম্বার?
+    function isMemberOf(ownerUid) {
+      return signedIn()
+        && exists(membershipPath())
+        && get(membershipPath()).data.ownerUid == ownerUid;
+    }
+
+    // মেম্বার কি এই মালিকের ডেটায় নির্দিষ্ট permission পেয়েছে?
+    function memberCan(ownerUid, key) {
+      return isMemberOf(ownerUid)
+        && get(membershipPath()).data.permissions.get(key, false) == true;
+    }
+
+    function canUse(ownerUid, key) {
+      return isOwner(ownerUid) || memberCan(ownerUid, key);
+    }
+
+    // ইনভাইট থেকে মেম্বারশিপ তৈরির বৈধতা:
+    //  - ইনভাইট আছে, মালিক/permission/ইমেইল হুবহু মিলছে
+    //  - যে ইমেইলে ইনভাইট গেছে সেই ইমেইল দিয়েই লগইন করা
+    //  - মালিক ইতিমধ্যে এই মেম্বারকে মুছে ফেলেনি (team ডকুমেন্ট আছে)
+    function validInviteFor(d) {
+      let invitePath = /databases/$(database)/documents/teamInvites/$(d.inviteCode);
+      return exists(invitePath)
+        && get(invitePath).data.ownerUid == d.ownerUid
+        && get(invitePath).data.permissions == d.permissions
+        && get(invitePath).data.email == d.email
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() == get(invitePath).data.email
+        && exists(/databases/$(database)/documents/users/$(d.ownerUid)/team/$(get(invitePath).data.teamMemberId));
+    }
+
+    // ------------------------------ মালিকের ডেটা ------------------------------
+    match /users/{uid} {
+      allow read, create, update: if isOwner(uid);
+      allow delete: if false;
+
+      match /orders/{docId} {
+        allow read, write: if canUse(uid, 'orders');
+      }
+      match /dailyAdSpend/{docId} {
+        allow read, write: if canUse(uid, 'dailyAdSpend');
+      }
+      match /expenses/{docId} {
+        allow read, write: if canUse(uid, 'expenses');
+      }
+      match /productPurchases/{docId} {
+        allow read, write: if canUse(uid, 'productPurchases');
+      }
+      match /dollarRates/{docId} {
+        allow read, write: if canUse(uid, 'dollarRates');
+      }
+      match /partners/{docId} {
+        allow read, write: if canUse(uid, 'partners');
+      }
+      match /commissionPayments/{docId} {
+        allow read, write: if canUse(uid, 'partners');
+      }
+
+      // ক্যাশ পজিশন ইত্যাদি — মালিক লেখে, মেম্বাররা শুধু পড়ে
+      match /meta/{docId} {
+        allow read: if isOwner(uid) || isMemberOf(uid);
+        allow write: if isOwner(uid);
+      }
+
+      // ইনবক্স রিপ্লাই মাস্টার — মালিক লেখে, মেম্বাররা শুধু পড়ে
+      match /inboxProducts/{docId} {
+        allow read: if isOwner(uid) || isMemberOf(uid);
+        allow write: if isOwner(uid);
+      }
+      match /inboxSettings/{docId} {
+        allow read: if isOwner(uid) || isMemberOf(uid);
+        allow write: if isOwner(uid);
+      }
+
+      // টিম লিস্ট
+      match /team/{memberId} {
+        allow read, create, delete: if isOwner(uid);
+        allow update: if isOwner(uid)
+          // অথবা ইনভাইট অ্যাকসেপ্ট করা মেম্বার — শুধু pending -> active আর নিজের uid বসাতে পারবে
+          || (
+            signedIn()
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'active'
+            && request.resource.data.memberUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'memberUid'])
+            && isMemberOf(uid)
+            && get(membershipPath()).data.email == resource.data.email
+          );
+      }
+    }
+
+    // ------------------------------ ইনভাইট কোড ------------------------------
+    match /teamInvites/{code} {
+      // কোড জানা থাকলে পড়া যায়, কিন্তু সব ইনভাইটের লিস্ট দেখা যায় না
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if false;
+      // মালিক বাতিল করতে পারে; যে মেম্বার এই কোড দিয়ে জয়েন করেছে সে ব্যবহারের পর মুছতে পারে
+      allow delete: if isOwner(resource.data.ownerUid)
+        || (isMemberOf(resource.data.ownerUid)
+            && get(membershipPath()).data.get('inviteCode', '') == code);
+    }
+
+    // ------------------------------ মেম্বারশিপ ------------------------------
+    match /teamMemberships/{uid} {
+      // নিজের মেম্বারশিপ নিজে পড়বে (লগইনের সময় workspace চেনার জন্য)
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+
+      // শুধু বৈধ ইনভাইট থাকলে, শুধু নিজের জন্য
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'permissions', 'email', 'inviteCode'])
+        && request.resource.data.keys().hasAll(['ownerUid', 'permissions', 'email', 'inviteCode'])
+        && validInviteFor(request.resource.data);
+
+      // মালিক শুধু permission বদলাতে পারে (মালিক/ইমেইল বদলানো যাবে না)
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['permissions']);
+
+      // মালিক মেম্বারকে সরাতে পারে
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+  }
+}

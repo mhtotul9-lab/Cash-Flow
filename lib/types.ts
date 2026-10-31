@@ -232,6 +232,7 @@ export interface TeamMember {
   status: "pending" | "active";
   createdAt: number;
   memberUid?: string; // অ্যাক্সেপ্ট করার পর তাদের নিজের Firebase uid
+  inviteCode?: string; // পেন্ডিং ইনভাইট বাতিল করতে লাগে
 }
 
 export interface TeamInvite {

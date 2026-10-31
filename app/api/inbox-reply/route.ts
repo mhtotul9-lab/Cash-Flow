@@ -11,6 +11,7 @@ import {
   normalizeResult,
   LIMITS,
 } from "@/lib/inbox-prompt";
+import { firebaseConfig } from "@/lib/firebase-config";
 
 // আগের /api/ai-assist এর মতোই OpenRouter ব্যবহার করা হয়েছে — একই OPENROUTER_API_KEY কাজ করবে।
 const PRIMARY_MODEL = "openai/gpt-oss-120b:free";
@@ -21,7 +22,7 @@ export const maxDuration = 60;
 // লগইন করা ইউজার কিনা যাচাই — যেন বাইরের কেউ আপনার OpenRouter key দিয়ে AI চালাতে না পারে।
 // (নতুন কোনো প্যাকেজ লাগে না — Firebase এর নিজস্ব REST API ব্যবহার করা হয়েছে)
 async function verifyFirebaseUser(idToken: string): Promise<boolean> {
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const apiKey = firebaseConfig.apiKey;
   if (!apiKey) return false;
   try {
     const res = await fetch(

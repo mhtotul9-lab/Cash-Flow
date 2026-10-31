@@ -105,13 +105,14 @@ export function useTeamMembers(ownerUid: string | undefined) {
   const invite = useCallback(
     async (ownerUid: string, ownerBusinessName: string, email: string, permissions: WorkspacePermissions) => {
       const teamMemberId = crypto.randomUUID();
+      const code = randomCode();
       await setDoc(doc(db, "users", ownerUid, "team", teamMemberId), {
         email: email.trim().toLowerCase(),
         permissions,
         status: "pending",
+        inviteCode: code,
         createdAt: serverTimestamp(),
       });
-      const code = randomCode();
       await setDoc(doc(db, "teamInvites", code), {
         code,
         ownerUid,
@@ -127,13 +128,25 @@ export function useTeamMembers(ownerUid: string | undefined) {
   );
 
   const updatePermissions = useCallback(
-    async (ownerUid: string, memberId: string, permissions: WorkspacePermissions) => {
+    async (ownerUid: string, memberId: string, permissions: WorkspacePermissions, memberUid?: string) => {
       await setDoc(doc(db, "users", ownerUid, "team", memberId), { permissions }, { merge: true });
+      // মেম্বার নিজের অ্যাক্সেস পড়ে teamMemberships থেকে — সেটাও আপডেট না করলে নতুন permission কাজ করে না
+      if (memberUid) {
+        await setDoc(doc(db, "teamMemberships", memberUid), { permissions }, { merge: true });
+      }
     },
     []
   );
 
   const remove = useCallback(async (ownerUid: string, member: TeamMember) => {
+    // পেন্ডিং হলে ইনভাইট কোডটাও বাতিল — নাহলে মুছে ফেলা মেম্বার কোড দিয়ে ঢুকে পড়তে পারত
+    if (member.inviteCode) {
+      try {
+        await deleteDoc(doc(db, "teamInvites", member.inviteCode));
+      } catch {
+        // ইনভাইট আগেই ব্যবহার/মুছে গেছে — সমস্যা নেই
+      }
+    }
     await deleteDoc(doc(db, "users", ownerUid, "team", member.id));
     if (member.memberUid) {
       await deleteDoc(doc(db, "teamMemberships", member.memberUid));
@@ -145,25 +158,47 @@ export function useTeamMembers(ownerUid: string | undefined) {
 
 // ========== ইনভাইট কোড দিয়ে জয়েন করা (মডারেটরের রেজিস্ট্রেশনের পর) ==========
 export async function acceptInvite(code: string, newUid: string) {
-  const inviteRef = doc(db, "teamInvites", code.trim().toUpperCase());
-  const snap = await getDoc(inviteRef);
+  const cleanCode = code.trim().toUpperCase();
+  const inviteRef = doc(db, "teamInvites", cleanCode);
+
+  let snap;
+  try {
+    snap = await getDoc(inviteRef);
+  } catch {
+    throw new Error("ইনভাইট কোড যাচাই করা যায়নি। কোড সঠিক কিনা দেখুন।");
+  }
   if (!snap.exists()) {
     throw new Error("ইনভাইট কোড সঠিক নয় বা মেয়াদ শেষ হয়ে গেছে।");
   }
   const invite = snap.data() as TeamInvite;
 
-  await setDoc(doc(db, "teamMemberships", newUid), {
-    ownerUid: invite.ownerUid,
-    permissions: invite.permissions,
-    email: invite.email,
-  });
+  try {
+    await setDoc(doc(db, "teamMemberships", newUid), {
+      ownerUid: invite.ownerUid,
+      permissions: invite.permissions,
+      email: invite.email,
+      inviteCode: cleanCode,
+    });
 
-  await setDoc(
-    doc(db, "users", invite.ownerUid, "team", invite.teamMemberId),
-    { status: "active", memberUid: newUid },
-    { merge: true }
-  );
+    await setDoc(
+      doc(db, "users", invite.ownerUid, "team", invite.teamMemberId),
+      { status: "active", memberUid: newUid },
+      { merge: true }
+    );
+  } catch (err) {
+    const c = (err as { code?: string })?.code;
+    if (c === "permission-denied") {
+      throw new Error(
+        "এই ইনভাইট যে ইমেইলে পাঠানো হয়েছে, ঠিক সেই ইমেইল দিয়েই রেজিস্ট্রেশন করতে হবে। (অথবা মালিক ইনভাইটটি বাতিল করেছেন)"
+      );
+    }
+    throw err;
+  }
 
-  await deleteDoc(inviteRef);
+  try {
+    await deleteDoc(inviteRef);
+  } catch {
+    // ইনভাইট মুছতে না পারলেও জয়েন সফল — কোডটা আর কাজে লাগবে না (মেম্বারশিপ আগেই তৈরি)
+  }
   return invite;
 }

@@ -201,7 +201,7 @@ export default function TeamTab({ ownerUid }: { ownerUid: string }) {
                 <PermissionEditor value={editPerms} onChange={setEditPerms} />
                 <button
                   onClick={async () => {
-                    await updatePermissions(ownerUid, m.id, editPerms);
+                    await updatePermissions(ownerUid, m.id, editPerms, m.memberUid);
                     setEditingId(null);
                   }}
                   className="text-sm btn-gradient text-white px-4 py-2 rounded-lg btn-press"
