@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Truck,
   UserCog,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PermissionKey } from "@/lib/types";
@@ -34,6 +35,7 @@ export type DashboardTab =
   | "dailyreport" // নতুন — দৈনিক রিপোর্ট
   | "courier"     // নতুন — Steadfast কুরিয়ার
   | "team"        // নতুন — টিম/মডারেটর (শুধু মালিক)
+  | "inboxreply"  // নতুন — ইনবক্স রিপ্লাই মাস্টার (AI)
   | "forecast"
   | "alerts"
   | "settings";
@@ -59,6 +61,7 @@ const NAV_ITEMS: {
 }[] = [
   { id: "overview", label: "ওভারভিউ", shortLabel: "হোম", icon: LayoutDashboard },
   { id: "orders", label: "অর্ডার", shortLabel: "অর্ডার", icon: ShoppingBag },
+  { id: "inboxreply", label: "ইনবক্স রিপ্লাই", shortLabel: "রিপ্লাই", icon: MessageCircle },
   { id: "dailyreport", label: "দৈনিক রিপোর্ট", shortLabel: "রিপোর্ট", icon: ClipboardList },
   { id: "courier", label: "কুরিয়ার", shortLabel: "কুরিয়ার", icon: Truck },
   { id: "partners", label: "পার্টনার", shortLabel: "পার্টনার", icon: Users },

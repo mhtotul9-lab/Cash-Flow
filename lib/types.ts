@@ -243,3 +243,45 @@ export interface TeamInvite {
   teamMemberId: string;
   createdAt: number;
 }
+
+// ========== ইনবক্স রিপ্লাই মাস্টার (নতুন) ==========
+
+// সর্বোচ্চ কয়টা প্রোডাক্ট সেভ করা যাবে
+export const INBOX_MAX_PRODUCTS = 30;
+
+export interface InboxProduct {
+  id: string;
+  name: string;
+  price: string;        // টেক্সট — "৫৯৯" বা "৫৯৯-৭৯৯" লিখতে পারার জন্য
+  details: string;      // কাপড়/ফেব্রিক, সাইজ, রঙ, বৈশিষ্ট্য
+  offer: string;        // সত্যিকারের অফার/ডিসকাউন্ট (থাকলে)
+  stockNote: string;    // সত্যিকারের স্টক তথ্য (থাকলে)
+  socialProof: string;  // সত্যিকারের রিভিউ/বিক্রির তথ্য (থাকলে)
+  createdAt: number;
+}
+
+export interface InboxBusinessInfo {
+  shopName: string;
+  replierName: string;
+  address: string;       // কাস্টমারকে সম্বোধন
+  tone: string;          // কথার টোন
+  delivery: string;
+  payment: string;
+  returnPolicy: string;
+  phone: string;
+  orderNeeds: string;    // অর্ডারের জন্য যা লাগে
+  instructions: string;  // বিশেষ নির্দেশনা
+}
+
+export type InboxReplyLang = "auto" | "bangla" | "banglish" | "english";
+
+export interface InboxReplyResult {
+  language: string;
+  customerType: string;
+  customerIntent: string;
+  mainReply: string;
+  shortReply: string;
+  followUp: string;
+  care: { context: string; assurance: string; reasoning: string; engagement: string };
+  warnings: string[];
+}

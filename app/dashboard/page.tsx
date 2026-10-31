@@ -28,6 +28,7 @@ import DollarRateTab from "../components/DollarRateTab";
 import DailyReportTab from "../components/DailyReportTab";
 import CourierTab from "../components/CourierTab";
 import TeamTab from "../components/TeamTab";
+import InboxReplyTab from "../components/InboxReplyTab";
 import { useWorkspace } from "@/lib/workspace";
 import { Order, Partner, CommissionPayment, DollarRate, ProductPurchase } from "@/lib/types";
 
@@ -272,6 +273,8 @@ export default function DashboardPage() {
           )}
 
           {tab === "team" && uid && <TeamTab ownerUid={uid} />}
+
+          {tab === "inboxreply" && uid && <InboxReplyTab uid={uid} isOwner={isOwner} />}
           </>
           )}
         </div>
