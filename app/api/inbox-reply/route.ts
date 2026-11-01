@@ -6,38 +6,55 @@ import {
   cleanCatalog,
   cleanLang,
   cleanProduct,
+  cleanThread,
   clean,
   extractJson,
   readApiKey,
+  readGeminiKey,
   normalizeResult,
   LIMITS,
 } from "@/lib/inbox-prompt";
 import { firebaseConfig } from "@/lib/firebase-config";
 
-// ফ্রি মডেল প্রতি সপ্তাহে বদলায়/বন্ধ হয়ে যায়, তাই কয়েকটা মডেল ক্রমে চেষ্টা করা হয়।
-// Vercel এ OPENROUTER_MODELS নামে ভ্যারিয়েবল (কমা দিয়ে আলাদা করে) দিলে সেটাই আগে চেষ্টা হবে —
-// তাহলে মডেল বন্ধ হলে কোড না বদলে শুধু Vercel থেকেই ঠিক করা যায়।
-const DEFAULT_MODELS = [
+export const maxDuration = 60;
+
+// ============================================================================
+//  AI প্রোভাইডার:
+//   ১) Google Gemini (প্রধান) — NexoraPilot এর ইনবক্স টুল যেটা ব্যবহার করে। Vercel এ GEMINI_API_KEY লাগবে।
+//   ২) OpenRouter (বিকল্প)   — Vercel এ OPENROUTER_API_KEY থাকলে Gemini ব্যর্থ হলে এটা চেষ্টা হবে।
+//  কী গুলো শুধু সার্ভারে থাকে, ব্রাউজারে কখনো যায় না।
+// ============================================================================
+
+type Provider = "gemini" | "openrouter";
+type FailKind = "auth" | "credit" | "limit" | "notfound" | "parse" | "other";
+
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+// Gemini মডেলের নাম বদলায়, তাই ক্রমে চেষ্টা। Vercel এ GEMINI_MODELS (কমা দিয়ে) দিলে সেটা আগে চেষ্টা হবে।
+const DEFAULT_GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+const DEFAULT_OPENROUTER_MODELS = [
   "google/gemma-4-31b-it:free",
   "nvidia/nemotron-3-super-120b-a12b:free",
   "openrouter/free",
 ];
 
-function getModels(): string[] {
-  const fromEnv = (process.env.OPENROUTER_MODELS ?? "")
+const REQUEST_TIMEOUT_MS = 20000;
+const TOTAL_BUDGET_MS = 48000;
+
+function listFromEnv(name: string, defaults: string[], max: number): string[] {
+  const fromEnv = (process.env[name] ?? "")
     .split(",")
     .map((m) => m.trim().replace(/^["']+|["']+$/g, ""))
     .filter(Boolean);
-  const all = [...fromEnv, ...DEFAULT_MODELS];
-  return all.filter((m, i) => all.indexOf(m) === i).slice(0, 5);
+  const all = [...fromEnv, ...defaults];
+  return all.filter((m, i) => all.indexOf(m) === i).slice(0, max);
 }
-
-type FailKind = "auth" | "credit" | "limit" | "notfound" | "parse" | "other";
 
 class AiError extends Error {
   kind: FailKind;
-  constructor(kind: FailKind, message: string) {
+  provider: Provider;
+  constructor(provider: Provider, kind: FailKind, message: string) {
     super(message);
+    this.provider = provider;
     this.kind = kind;
   }
 }
@@ -52,70 +69,78 @@ function shortDetail(body: string): string {
   return body.replace(/\s+/g, " ").slice(0, 160);
 }
 
-function userMessage(kind: FailKind, detail: string): string {
-  switch (kind) {
-    case "auth":
-      return (
-        "OpenRouter আপনার API key গ্রহণ করেনি (৪০১)।\n" +
-        "কারণ: কী-টা ভুল, মুছে ফেলা বা নিষ্ক্রিয়।\n" +
-        "সমাধান: openrouter.ai এ গিয়ে নতুন কী বানান → Vercel এ OPENROUTER_API_KEY এ বসান → Redeploy করুন।"
-      );
-    case "credit":
-      return "আপনার OpenRouter অ্যাকাউন্টের ব্যালেন্স নেগেটিভ (৪০২)। openrouter.ai → Credits এ গিয়ে কিছু ক্রেডিট যোগ করুন, তাহলে ফ্রি মডেলও আবার চলবে।";
-    case "limit":
-      return "OpenRouter এর ফ্রি লিমিট শেষ (৪২৯): প্রতি মিনিটে ২০টি এবং প্রতিদিন ৫০টি রিকোয়েস্ট। কিছুক্ষণ পর বা কাল আবার চেষ্টা করুন। (১০ ডলারের ক্রেডিট একবার কিনলে দৈনিক সীমা ১০০০ হয়।)";
-    case "notfound":
-      return (
-        "কোনো ফ্রি মডেল পাওয়া যায়নি (ফ্রি মডেল প্রায়ই বন্ধ/বদল হয়, অথবা OpenRouter এর Privacy সেটিংসে ফ্রি মডেল ব্লক করা আছে)।\n" +
-        "সমাধান: openrouter.ai/models এ ফিল্টার করে একটা বর্তমান :free মডেল দেখে Vercel এ OPENROUTER_MODELS এ বসান, অথবা Settings → Privacy দেখুন।"
-      );
-    case "parse":
-      return "AI এর উত্তর বোঝা যায়নি। আবার চেষ্টা করুন।";
-    default:
-      return `AI এখন সাময়িকভাবে উত্তর দিতে পারছে না। কিছুক্ষণ পর আবার চেষ্টা করুন।${detail ? `\n(কারিগরি তথ্য: ${detail})` : ""}`;
-  }
-}
-
-const PRIORITY: FailKind[] = ["auth", "credit", "limit", "notfound", "parse", "other"];
-
-export const maxDuration = 60;
-
-// লগইন করা ইউজার কিনা যাচাই — যেন বাইরের কেউ আপনার OpenRouter key দিয়ে AI চালাতে না পারে।
-// (নতুন কোনো প্যাকেজ লাগে না — Firebase এর নিজস্ব REST API ব্যবহার করা হয়েছে)
-async function verifyFirebaseUser(idToken: string): Promise<boolean> {
-  const apiKey = firebaseConfig.apiKey;
-  if (!apiKey) return false;
+async function safeFetch(provider: Provider, url: string, init: RequestInit): Promise<Response> {
   try {
-    const res = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      }
-    );
-    if (!res.ok) return false;
-    const data = (await res.json()) as { users?: unknown[] };
-    return Array.isArray(data.users) && data.users.length > 0;
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   } catch {
-    return false;
+    throw new AiError(provider, "other", "সংযোগ ব্যর্থ বা সময় শেষ");
   }
 }
 
-async function callOpenRouter(apiKey: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> {
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+// ------------------------------- Gemini -------------------------------
+async function callGemini(
+  apiKey: string,
+  model: string,
+  system: string,
+  user: string,
+  temperature: number
+): Promise<string> {
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: "user", parts: [{ text: user }] }],
+    // JSON মোড — AI কে বাধ্য করে শুধু বৈধ JSON দিতে (ফ্রি OpenRouter মডেলে এটা থাকে না, তাই Gemini বেশি নির্ভরযোগ্য)
+    generationConfig: { temperature, responseMimeType: "application/json" },
+  });
+
+  let res: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    res = await safeFetch("gemini", `${GEMINI_BASE}/${model}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body,
+    });
+    if (res.status < 500 || attempt === 1) break;
+    await new Promise((r) => setTimeout(r, 1500)); // মডেল ব্যস্ত (৫xx) — একটু থেমে আবার
+  }
+  if (!res) throw new AiError("gemini", "other", "উত্তর আসেনি");
+
+  if (!res.ok) {
+    const detail = shortDetail(await res.text());
+    const keyProblem = res.status === 401 || res.status === 403 || (res.status === 400 && /api key|API_KEY/i.test(detail));
+    const kind: FailKind = keyProblem ? "auth" : res.status === 429 ? "limit" : res.status === 404 ? "notfound" : "other";
+    throw new AiError("gemini", kind, `${model} → ${res.status}: ${detail}`);
+  }
+
+  const data = (await res.json().catch(() => ({}))) as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    promptFeedback?: { blockReason?: string };
+  };
+  const text = (data.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("").trim();
+  if (!text) {
+    const block = data.promptFeedback?.blockReason;
+    throw new AiError("gemini", block ? "other" : "parse", block ? `Gemini ব্লক করেছে: ${block}` : "খালি উত্তর");
+  }
+  return text;
+}
+
+// ------------------------------ OpenRouter ------------------------------
+async function callOpenRouter(
+  apiKey: string,
+  model: string,
+  system: string,
+  user: string,
+  temperature: number
+): Promise<string> {
+  const res = await safeFetch("openrouter", "https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "system", content: system },
+        { role: "user", content: user },
       ],
-      temperature: 0.4,
+      temperature,
       max_tokens: 2000,
     }),
   });
@@ -131,32 +156,127 @@ async function callOpenRouter(apiKey: string, model: string, systemPrompt: strin
             : res.status === 404
               ? "notfound"
               : "other";
-    throw new AiError(kind, `${model} → ${res.status}: ${detail}`);
+    throw new AiError("openrouter", kind, `${model} → ${res.status}: ${detail}`);
   }
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-// একটার পর একটা মডেল চেষ্টা করে। কী ভুল হলে (৪০১) বাকি মডেলে চেষ্টা করে লাভ নেই, তাই সাথে সাথে থামে।
-async function generate(apiKey: string, systemPrompt: string, userPrompt: string) {
+// ------------------------------ ব্যবহারকারীর জন্য বার্তা ------------------------------
+function userMessage(provider: Provider, kind: FailKind, detail: string): string {
+  const name = provider === "gemini" ? "Gemini" : "OpenRouter";
+  switch (kind) {
+    case "auth":
+      return provider === "gemini"
+        ? "Gemini API key কাজ করছে না (৪০০/৪০১/৪০৩)।\nকারণ: কী-টা ভুল, মুছে ফেলা, অথবা সেই কী-তে Gemini API বন্ধ।\nসমাধান: aistudio.google.com/apikey এ নতুন কী বানিয়ে Vercel এ GEMINI_API_KEY এ বসান → Redeploy করুন।"
+        : "OpenRouter আপনার API key গ্রহণ করেনি (৪০১)।\nসমাধান: openrouter.ai এ নতুন কী বানিয়ে Vercel এ OPENROUTER_API_KEY এ বসান → Redeploy করুন।";
+    case "credit":
+      return "আপনার OpenRouter অ্যাকাউন্টের ব্যালেন্স নেগেটিভ (৪০২)। openrouter.ai → Credits এ কিছু ক্রেডিট যোগ করুন।";
+    case "limit":
+      return provider === "gemini"
+        ? "Gemini এর ফ্রি লিমিট সাময়িকভাবে শেষ (৪২৯)। ১ মিনিট পর আবার চেষ্টা করুন। দৈনিক সীমা শেষ হলে কাল আবার চলবে।"
+        : "OpenRouter এর ফ্রি লিমিট শেষ (৪২৯): প্রতি মিনিটে ২০টি, প্রতিদিন ৫০টি রিকোয়েস্ট। কিছুক্ষণ বা কাল আবার চেষ্টা করুন।";
+    case "notfound":
+      return provider === "gemini"
+        ? "Gemini মডেল পাওয়া যায়নি (গুগল মডেলের নাম বদলায়)।\nসমাধান: Vercel এ GEMINI_MODELS এ বর্তমান মডেলের নাম দিন, যেমন gemini-2.5-flash।"
+        : "কোনো ফ্রি মডেল পাওয়া যায়নি (মডেল বন্ধ/বদল হয়েছে বা OpenRouter এর Privacy সেটিংসে ব্লক)।\nসমাধান: Vercel এ OPENROUTER_MODELS এ বর্তমান :free মডেলের নাম দিন।";
+    case "parse":
+      return "AI এর উত্তর বোঝা যায়নি। আবার চেষ্টা করুন।";
+    default:
+      return `${name} এখন সাময়িকভাবে উত্তর দিতে পারছে না। কিছুক্ষণ পর আবার চেষ্টা করুন।${detail ? `\n(কারিগরি তথ্য: ${detail})` : ""}`;
+  }
+}
+
+const PRIORITY: FailKind[] = ["auth", "credit", "limit", "notfound", "parse", "other"];
+
+interface ProviderPlan {
+  provider: Provider;
+  key: string;
+  models: string[];
+}
+
+// একটার পর একটা প্রোভাইডার ও মডেল চেষ্টা। কী ভুল (auth) হলে ওই প্রোভাইডারের বাকি মডেলে লাভ নেই।
+async function generate(plans: ProviderPlan[], system: string, user: string, variant: boolean) {
   const failures: AiError[] = [];
-  for (const model of getModels()) {
-    try {
-      const raw = await callOpenRouter(apiKey, model, systemPrompt, userPrompt);
-      return normalizeResult(extractJson(raw));
-    } catch (err) {
-      if (err instanceof AiError) {
-        failures.push(err);
-        if (err.kind === "auth") break;
-      } else {
-        failures.push(new AiError("parse", err instanceof Error ? err.message : "parse"));
+  const started = Date.now();
+
+  outer: for (const plan of plans) {
+    for (const model of plan.models) {
+      if (Date.now() - started > TOTAL_BUDGET_MS) break outer;
+      try {
+        const raw =
+          plan.provider === "gemini"
+            ? await callGemini(plan.key, model, system, user, variant ? 1.0 : 0.8)
+            : await callOpenRouter(plan.key, model, system, user, variant ? 0.9 : 0.5);
+        return normalizeResult(extractJson(raw));
+      } catch (err) {
+        if (err instanceof AiError) {
+          failures.push(err);
+          if (err.kind === "auth") break; // এই প্রোভাইডারের কী-ই ভুল, পরের প্রোভাইডারে যাই
+        } else {
+          failures.push(new AiError(plan.provider, "parse", err instanceof Error ? err.message : "parse"));
+        }
       }
     }
   }
+
   const worst = PRIORITY.map((k) => failures.find((f) => f.kind === k)).find(Boolean);
+  const provider = worst?.provider ?? plans[0].provider;
   const kind = worst?.kind ?? "other";
   const detail = kind === "other" ? (worst?.message ?? "") : "";
-  throw new AiError(kind, userMessage(kind, detail));
+  throw new AiError(provider, kind, userMessage(provider, kind, detail));
+}
+
+// লগইন করা ইউজার কিনা যাচাই — যেন বাইরের কেউ আপনার AI কী দিয়ে খরচ করতে না পারে।
+async function verifyFirebaseUser(idToken: string): Promise<boolean> {
+  const apiKey = firebaseConfig.apiKey;
+  if (!apiKey) return false;
+  try {
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { users?: unknown[] };
+    return Array.isArray(data.users) && data.users.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// কোন কোন প্রোভাইডার চালু আছে — না থাকলে ব্যবহারকারীকে কী করতে হবে তার বার্তা
+function planProviders(): { plans: ProviderPlan[]; error: string | null } {
+  const gem = readGeminiKey(process.env.GEMINI_API_KEY);
+  const orr = readApiKey(process.env.OPENROUTER_API_KEY);
+  const plans: ProviderPlan[] = [];
+  if (gem.problem === null) {
+    plans.push({ provider: "gemini", key: gem.key, models: listFromEnv("GEMINI_MODELS", DEFAULT_GEMINI_MODELS, 5) });
+  }
+  if (orr.problem === null) {
+    plans.push({ provider: "openrouter", key: orr.key, models: listFromEnv("OPENROUTER_MODELS", DEFAULT_OPENROUTER_MODELS, 4) });
+  }
+  if (plans.length > 0) return { plans, error: null };
+
+  if (gem.problem === "format") {
+    return {
+      plans,
+      error:
+        "Vercel এ GEMINI_API_KEY এ যা বসানো আছে সেটা Gemini এর কী নয় (Gemini কী সবসময় AIza দিয়ে শুরু হয়)। aistudio.google.com/apikey থেকে সঠিক কী নিয়ে বসান, তারপর Redeploy করুন।",
+    };
+  }
+  if (orr.problem === "format") {
+    return {
+      plans,
+      error:
+        "Vercel এ OPENROUTER_API_KEY এ যা বসানো আছে সেটা OpenRouter এর কী নয় (সবসময় sk-or- দিয়ে শুরু হয়)। অথবা সহজ উপায়: aistudio.google.com/apikey থেকে ফ্রি Gemini কী নিয়ে GEMINI_API_KEY নামে বসান, তারপর Redeploy করুন।",
+    };
+  }
+  return {
+    plans,
+    error:
+      "AI কী বসানো নেই।\nসবচেয়ে সহজ: aistudio.google.com/apikey থেকে ফ্রি Gemini কী নিয়ে Vercel → Settings → Environment Variables এ GEMINI_API_KEY নামে বসান, তারপর Redeploy করুন।\n(বিকল্প হিসেবে OPENROUTER_API_KEY ও চলবে।)",
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -168,19 +288,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "লগইন যাচাই করা যায়নি। পেজ রিফ্রেশ করে আবার লগইন করুন।" }, { status: 401 });
     }
 
-    // ২) API key আছে কিনা এবং OpenRouter কী এর মতো দেখাচ্ছে কিনা
-    const { key: apiKey, problem } = readApiKey(process.env.OPENROUTER_API_KEY);
-    if (problem === "missing") {
-      return NextResponse.json(
-        { error: "Vercel এ OPENROUTER_API_KEY বসানো নেই বা ফাঁকা। openrouter.ai থেকে কী নিয়ে Vercel → Settings → Environment Variables এ বসান, তারপর Redeploy করুন।" },
-        { status: 500 }
-      );
-    }
-    if (problem === "format") {
-      return NextResponse.json(
-        { error: "Vercel এ OPENROUTER_API_KEY এ যা বসানো আছে সেটা OpenRouter এর কী নয় (OpenRouter এর কী সবসময় sk-or- দিয়ে শুরু হয়)। openrouter.ai → Keys থেকে সঠিক কী নিয়ে বসান, তারপর Redeploy করুন।" },
-        { status: 500 }
-      );
+    // ২) AI কী আছে কিনা
+    const { plans, error: configError } = planProviders();
+    if (configError) {
+      return NextResponse.json({ error: configError }, { status: 500 });
     }
 
     // ৩) ইনপুট পরিষ্কার
@@ -194,12 +305,15 @@ export async function POST(req: NextRequest) {
     const business = cleanBusiness(body.business);
     const product = cleanProduct(body.product);
     const catalog = cleanCatalog(body.catalog, product?.name);
+    const thread = cleanThread(body.thread);
+    const variant = body.variant === true;
 
     // ৪) AI কল
     const result = await generate(
-      apiKey,
+      plans,
       buildSystemPrompt(lang),
-      buildUserPrompt({ business, product, catalog, message, context })
+      buildUserPrompt({ business, product, catalog, message, context, thread, variant }),
+      variant
     );
     return NextResponse.json({ result });
   } catch (err: unknown) {

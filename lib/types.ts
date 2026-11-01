@@ -284,5 +284,12 @@ export interface InboxReplyResult {
   shortReply: string;
   followUp: string;
   care: { context: string; assurance: string; reasoning: string; engagement: string };
+  upsellTip: string;
+  nextStep: string;
   warnings: string[];
+}
+
+export interface InboxThreadTurn {
+  role: "customer" | "me";
+  text: string;
 }
