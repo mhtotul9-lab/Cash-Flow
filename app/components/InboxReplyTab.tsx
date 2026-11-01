@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   MessageCircle,
   Sparkles,
@@ -143,6 +143,107 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
+// ================= AI স্ট্যাটাস =================
+type AiState = "ok" | "missing" | "format";
+interface AiStatusData {
+  version: string;
+  gemini: AiState;
+  openrouter: AiState;
+}
+
+function AiStatus() {
+  const { user } = useAuth();
+  const uid = user?.uid;
+  // user অবজেক্ট বদলালেও যেন বারবার রিকোয়েস্ট না যায় — শুধু uid বদলালে একবার চেক হয়
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  });
+  const [status, setStatus] = useState<AiStatusData | "old" | "error" | null>(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    let alive = true;
+    (async () => {
+      try {
+        const token = await userRef.current?.getIdToken();
+        if (!token) return;
+        const res = await fetch("/api/inbox-reply", { headers: { Authorization: `Bearer ${token}` } });
+        if (!alive) return;
+        // GET কাজ না করলে (৪০৫) মানে সাইটে এখনো পুরনো কোড ডিপ্লয় আছে
+        if (res.status === 404 || res.status === 405) return setStatus("old");
+        if (!res.ok) return setStatus("error");
+        const data = (await res.json()) as AiStatusData;
+        setStatus(data);
+      } catch {
+        if (alive) setStatus("error");
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [uid]);
+
+  if (!status || status === "error") return null;
+
+  const steps = (
+    <ol className="list-decimal pl-5 space-y-1 mt-2 text-[var(--text-primary)]">
+      <li>
+        aistudio.google.com/apikey এ গিয়ে <b>Create API key</b> চাপুন (কী <code>AIza</code> দিয়ে শুরু হয়, বিনা পয়সায়)।
+      </li>
+      <li>
+        Vercel → প্রোজেক্ট → Settings → Environment Variables → Name: <code>GEMINI_API_KEY</code>, Value: কী-টা (কোটেশন/স্পেস ছাড়া) → Save।
+      </li>
+      <li>
+        Vercel → Deployments → সবচেয়ে উপরের ডিপ্লয়ের <b>⋯</b> → <b>Redeploy</b>।
+      </li>
+      <li>এই পেজ রিফ্রেশ করুন — উপরে সবুজ লেখা এলে হয়ে গেছে।</li>
+    </ol>
+  );
+
+  if (status === "old") {
+    return (
+      <div className="bg-[var(--red-soft)] border border-[var(--red)]/30 rounded-xl p-3 text-xs text-[var(--red)]">
+        🔴 সাইটে এখনো পুরনো কোড ডিপ্লয় আছে। GitHub-এ নতুন ফাইল আপলোড করে Vercel-এ ডিপ্লয় শেষ (Ready) হওয়া পর্যন্ত অপেক্ষা করুন।
+      </div>
+    );
+  }
+
+  if (status.gemini === "ok") {
+    return (
+      <div className="bg-[var(--green-soft)] border border-[var(--green)]/30 rounded-xl p-2.5 text-xs text-[var(--green)]">
+        🟢 AI প্রস্তুত — Gemini চালু আছে{status.openrouter === "ok" ? " (বিকল্প: OpenRouter)" : ""}
+      </div>
+    );
+  }
+
+  const gemProblem =
+    status.gemini === "format"
+      ? "Vercel এ GEMINI_API_KEY এ ভুল জিনিস বসানো আছে (Gemini কী সবসময় AIza দিয়ে শুরু হয়)।"
+      : "Gemini কী এখনো Vercel এ বসানো নেই।";
+
+  return (
+    <div
+      className={`rounded-xl p-3 text-xs border ${
+        status.openrouter === "ok"
+          ? "bg-[var(--mustard-soft)] border-[var(--mustard)]/30"
+          : "bg-[var(--red-soft)] border-[var(--red)]/30"
+      }`}
+    >
+      <p className="font-medium">
+        {status.openrouter === "ok"
+          ? "🟡 শুধু OpenRouter চালু আছে — ফ্রি লিমিট খুব কম (দিনে ৫০টি), তাই বারবার ব্যর্থ হবে।"
+          : "🔴 কোনো AI কী ঠিকভাবে বসানো নেই।"}{" "}
+        {gemProblem}
+      </p>
+      <details className="mt-1.5">
+        <summary className="cursor-pointer font-medium underline">ঠিক করার ৪টি ধাপ (দেখুন)</summary>
+        {steps}
+      </details>
+    </div>
+  );
+}
+
 // ================= উত্তর তৈরি =================
 function autoRows(text: string): number {
   return Math.min(14, Math.max(3, Math.ceil(text.length / 48) + (text.match(/\n/g) || []).length));
@@ -263,6 +364,7 @@ function ReplyPanel({
 
   return (
     <div className="space-y-4">
+      <AiStatus />
       {!businessSaved && (
         <div className="bg-[var(--mustard-soft)] border border-[var(--mustard)]/30 rounded-xl p-3 text-xs text-[var(--text-primary)] flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-[var(--mustard)] shrink-0 mt-0.5" />

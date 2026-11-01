@@ -18,6 +18,9 @@ import { firebaseConfig } from "@/lib/firebase-config";
 
 export const maxDuration = 60;
 
+// স্ক্রিনের স্ট্যাটাস লাইনে দেখানো হয় — বোঝা যায় নতুন কোড ডিপ্লয় হয়েছে কিনা
+const VERSION = "2026-11-01-gemini";
+
 // ============================================================================
 //  AI প্রোভাইডার:
 //   ১) Google Gemini (প্রধান) — NexoraPilot এর ইনবক্স টুল যেটা ব্যবহার করে। Vercel এ GEMINI_API_KEY লাগবে।
@@ -196,7 +199,8 @@ interface ProviderPlan {
 }
 
 // একটার পর একটা প্রোভাইডার ও মডেল চেষ্টা। কী ভুল (auth) হলে ওই প্রোভাইডারের বাকি মডেলে লাভ নেই।
-async function generate(plans: ProviderPlan[], system: string, user: string, variant: boolean) {
+// সব ব্যর্থ হলে প্রতিটা প্রোভাইডারের এরর আলাদা করে দেখানো হয় — যাতে একটার সমস্যা আরেকটার আড়ালে লুকিয়ে না যায়।
+async function generate(plans: ProviderPlan[], system: string, user: string, variant: boolean, notes: string[]) {
   const failures: AiError[] = [];
   const started = Date.now();
 
@@ -220,11 +224,17 @@ async function generate(plans: ProviderPlan[], system: string, user: string, var
     }
   }
 
-  const worst = PRIORITY.map((k) => failures.find((f) => f.kind === k)).find(Boolean);
-  const provider = worst?.provider ?? plans[0].provider;
-  const kind = worst?.kind ?? "other";
-  const detail = kind === "other" ? (worst?.message ?? "") : "";
-  throw new AiError(provider, kind, userMessage(provider, kind, detail));
+  const parts: string[] = [];
+  for (const plan of plans) {
+    const mine = failures.filter((f) => f.provider === plan.provider);
+    if (mine.length === 0) continue;
+    const worst = PRIORITY.map((k) => mine.find((f) => f.kind === k)).find(Boolean)!;
+    const detail = worst.kind === "other" ? worst.message : "";
+    const label = plan.provider === "gemini" ? "【Gemini】" : "【OpenRouter】";
+    parts.push(`${plans.length > 1 ? label + " " : ""}${userMessage(plan.provider, worst.kind, detail)}`);
+  }
+  if (parts.length === 0) parts.push("AI উত্তর দিতে পারেনি। আবার চেষ্টা করুন।");
+  throw new AiError(plans[0].provider, "other", [...parts, ...notes].join("\n\n"));
 }
 
 // লগইন করা ইউজার কিনা যাচাই — যেন বাইরের কেউ আপনার AI কী দিয়ে খরচ করতে না পারে।
@@ -246,7 +256,7 @@ async function verifyFirebaseUser(idToken: string): Promise<boolean> {
 }
 
 // কোন কোন প্রোভাইডার চালু আছে — না থাকলে ব্যবহারকারীকে কী করতে হবে তার বার্তা
-function planProviders(): { plans: ProviderPlan[]; error: string | null } {
+function planProviders(): { plans: ProviderPlan[]; error: string | null; notes: string[] } {
   const gem = readGeminiKey(process.env.GEMINI_API_KEY);
   const orr = readApiKey(process.env.OPENROUTER_API_KEY);
   const plans: ProviderPlan[] = [];
@@ -256,11 +266,18 @@ function planProviders(): { plans: ProviderPlan[]; error: string | null } {
   if (orr.problem === null) {
     plans.push({ provider: "openrouter", key: orr.key, models: listFromEnv("OPENROUTER_MODELS", DEFAULT_OPENROUTER_MODELS, 4) });
   }
-  if (plans.length > 0) return { plans, error: null };
+  const notes: string[] = [];
+  if (gem.problem === "missing") {
+    notes.push("ℹ️ Gemini কী বসানো নেই (Vercel এ GEMINI_API_KEY)। বসালে এই সমস্যা থাকবে না — ফ্রি, aistudio.google.com/apikey থেকে নিন।");
+  } else if (gem.problem === "format") {
+    notes.push("ℹ️ Vercel এর GEMINI_API_KEY ভুল (AIza দিয়ে শুরু হওয়ার কথা), তাই Gemini বাদ গেছে। সঠিক কী বসান।");
+  }
+  if (plans.length > 0) return { plans, error: null, notes };
 
   if (gem.problem === "format") {
     return {
       plans,
+      notes,
       error:
         "Vercel এ GEMINI_API_KEY এ যা বসানো আছে সেটা Gemini এর কী নয় (Gemini কী সবসময় AIza দিয়ে শুরু হয়)। aistudio.google.com/apikey থেকে সঠিক কী নিয়ে বসান, তারপর Redeploy করুন।",
     };
@@ -268,12 +285,14 @@ function planProviders(): { plans: ProviderPlan[]; error: string | null } {
   if (orr.problem === "format") {
     return {
       plans,
+      notes,
       error:
         "Vercel এ OPENROUTER_API_KEY এ যা বসানো আছে সেটা OpenRouter এর কী নয় (সবসময় sk-or- দিয়ে শুরু হয়)। অথবা সহজ উপায়: aistudio.google.com/apikey থেকে ফ্রি Gemini কী নিয়ে GEMINI_API_KEY নামে বসান, তারপর Redeploy করুন।",
     };
   }
   return {
     plans,
+    notes,
     error:
       "AI কী বসানো নেই।\nসবচেয়ে সহজ: aistudio.google.com/apikey থেকে ফ্রি Gemini কী নিয়ে Vercel → Settings → Environment Variables এ GEMINI_API_KEY নামে বসান, তারপর Redeploy করুন।\n(বিকল্প হিসেবে OPENROUTER_API_KEY ও চলবে।)",
   };
@@ -289,7 +308,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ২) AI কী আছে কিনা
-    const { plans, error: configError } = planProviders();
+    const { plans, error: configError, notes } = planProviders();
     if (configError) {
       return NextResponse.json({ error: configError }, { status: 500 });
     }
@@ -313,11 +332,28 @@ export async function POST(req: NextRequest) {
       plans,
       buildSystemPrompt(lang),
       buildUserPrompt({ business, product, catalog, message, context, thread, variant }),
-      variant
+      variant,
+      notes
     );
     return NextResponse.json({ result });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 502 });
   }
+}
+
+// স্ট্যাটাস: কোন AI কী ঠিকমতো বসানো আছে (কী নিজে কখনো পাঠানো হয় না)
+export async function GET(req: NextRequest) {
+  const auth = req.headers.get("authorization") || "";
+  const idToken = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  if (!idToken || !(await verifyFirebaseUser(idToken))) {
+    return NextResponse.json({ error: "লগইন যাচাই করা যায়নি।" }, { status: 401 });
+  }
+  const gem = readGeminiKey(process.env.GEMINI_API_KEY);
+  const orr = readApiKey(process.env.OPENROUTER_API_KEY);
+  return NextResponse.json({
+    version: VERSION,
+    gemini: gem.problem ?? "ok",
+    openrouter: orr.problem ?? "ok",
+  });
 }
