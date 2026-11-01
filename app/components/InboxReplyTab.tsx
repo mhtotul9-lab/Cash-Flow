@@ -149,6 +149,8 @@ interface AiStatusData {
   version: string;
   gemini: AiState;
   openrouter: AiState;
+  live?: "ok" | "rejected" | "limit" | "unverified" | null; // গুগলকে সত্যিই জিজ্ঞেস করে পাওয়া ফল
+  liveDetail?: string;
 }
 
 function AiStatus() {
@@ -168,7 +170,7 @@ function AiStatus() {
       try {
         const token = await userRef.current?.getIdToken();
         if (!token) return;
-        const res = await fetch("/api/inbox-reply", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch("/api/inbox-reply?check=1", { headers: { Authorization: `Bearer ${token}` } });
         if (!alive) return;
         // GET কাজ না করলে (৪০৫) মানে সাইটে এখনো পুরনো কোড ডিপ্লয় আছে
         if (res.status === 404 || res.status === 405) return setStatus("old");
@@ -189,13 +191,13 @@ function AiStatus() {
   const steps = (
     <ol className="list-decimal pl-5 space-y-1 mt-2 text-[var(--text-primary)]">
       <li>
-        aistudio.google.com/apikey এ গিয়ে <b>Create API key</b> চাপুন (কী <code>AIza</code> দিয়ে শুরু হয়, বিনা পয়সায়)।
+        aistudio.google.com/apikey এ গিয়ে <b>Create API key</b> চাপুন, তারপর কী-টার পাশের <b>Copy</b> বাটন চাপুন (হাতে লিখবেন না)।
       </li>
       <li>
-        Vercel → প্রোজেক্ট → Settings → Environment Variables → Name: <code>GEMINI_API_KEY</code>, Value: কী-টা (কোটেশন/স্পেস ছাড়া) → Save।
+        Vercel → প্রোজেক্ট → Settings → Environment Variables → <code>GEMINI_API_KEY</code> এর ডানে <b>⋯ → Edit</b> → পুরনো মান মুছে নতুন কী পেস্ট (কোটেশন/স্পেস ছাড়া) → Save।
       </li>
       <li>
-        Vercel → Deployments → সবচেয়ে উপরের ডিপ্লয়ের <b>⋯</b> → <b>Redeploy</b>।
+        Vercel → Deployments → সবচেয়ে উপরের ডিপ্লয়ের <b>⋯</b> → <b>Redeploy</b> → &quot;Ready&quot; পর্যন্ত অপেক্ষা।
       </li>
       <li>এই পেজ রিফ্রেশ করুন — উপরে সবুজ লেখা এলে হয়ে গেছে।</li>
     </ol>
@@ -210,16 +212,43 @@ function AiStatus() {
   }
 
   if (status.gemini === "ok") {
+    const backup = status.openrouter === "ok" ? " (বিকল্প: OpenRouter)" : "";
+    if (status.live === "rejected") {
+      return (
+        <div className="bg-[var(--red-soft)] border border-[var(--red)]/30 rounded-xl p-3 text-xs">
+          <p className="font-medium text-[var(--red)]">🔴 Google আপনার Gemini কী গ্রহণ করছে না — কী-টা ভুল, মুছে ফেলা বা অকার্যকর।</p>
+          {status.liveDetail && <p className="mt-1 text-[var(--text-muted)]">Google বলছে: {status.liveDetail}</p>}
+          <details className="mt-1.5" open>
+            <summary className="cursor-pointer font-medium underline">নতুন কী বসানোর ৪টি ধাপ</summary>
+            {steps}
+          </details>
+        </div>
+      );
+    }
+    if (status.live === "limit") {
+      return (
+        <div className="bg-[var(--mustard-soft)] border border-[var(--mustard)]/30 rounded-xl p-2.5 text-xs">
+          🟡 Gemini কী ঠিক আছে ✅ কিন্তু এই মুহূর্তে গুগলের ফ্রি সীমা শেষ। ১ মিনিট পর আবার চেষ্টা করুন{backup}।
+        </div>
+      );
+    }
+    if (status.live === "unverified") {
+      return (
+        <div className="bg-[var(--green-soft)] border border-[var(--green)]/30 rounded-xl p-2.5 text-xs text-[var(--green)]">
+          🟢 Gemini কী বসানো আছে (গুগলের সাথে যাচাই করা যায়নি, তবু চেষ্টা করে দেখুন){backup}
+        </div>
+      );
+    }
     return (
       <div className="bg-[var(--green-soft)] border border-[var(--green)]/30 rounded-xl p-2.5 text-xs text-[var(--green)]">
-        🟢 AI প্রস্তুত — Gemini চালু আছে{status.openrouter === "ok" ? " (বিকল্প: OpenRouter)" : ""}
+        🟢 AI প্রস্তুত — Gemini কী যাচাই হয়েছে ✅{backup}
       </div>
     );
   }
 
   const gemProblem =
     status.gemini === "format"
-      ? "Vercel এ GEMINI_API_KEY এ ভুল জিনিস বসানো আছে (Gemini কী সবসময় AIza দিয়ে শুরু হয়)।"
+      ? "Vercel এ GEMINI_API_KEY এ যা বসানো আছে সেটা Gemini কী বলে মনে হচ্ছে না (খালি, খুব ছোট বা অন্য কোনো লেখা)।"
       : "Gemini কী এখনো Vercel এ বসানো নেই।";
 
   return (
@@ -236,7 +265,7 @@ function AiStatus() {
           : "🔴 কোনো AI কী ঠিকভাবে বসানো নেই।"}{" "}
         {gemProblem}
       </p>
-      <details className="mt-1.5">
+      <details className="mt-1.5" open={status.gemini === "format"}>
         <summary className="cursor-pointer font-medium underline">ঠিক করার ৪টি ধাপ (দেখুন)</summary>
         {steps}
       </details>

@@ -323,7 +323,8 @@ export function readApiKey(raw: string | undefined): { key: string; problem: "mi
   return { key: k, problem: null };
 }
 
-// Gemini (Google AI Studio) কী — সবসময় AIza দিয়ে শুরু হয়
+// Gemini কী: গুগল কী-এর ধরন বদলাতে পারে, তাই "AIza দিয়ে শুরু" ধরে নিয়ে বৈধ কী আটকানো হয় না।
+// শুধু স্পষ্ট ভুলগুলো ধরা হয় (খালি, OpenRouter কী, অতি ছোট, URL/JSON)। বাকিটা গুগল নিজে যাচাই করে।
 export function readGeminiKey(raw: string | undefined): { key: string; problem: "missing" | "format" | null } {
   let k = (raw ?? "").trim();
   k = k.replace(/^["']+|["']+$/g, "");
@@ -331,6 +332,8 @@ export function readGeminiKey(raw: string | undefined): { key: string; problem: 
   k = k.replace(/^Bearer\s+/i, "");
   k = k.replace(/[^\x21-\x7E]/g, "");
   if (!k) return { key: "", problem: "missing" };
-  if (!k.startsWith("AIza")) return { key: k, problem: "format" };
+  if (k.startsWith("sk-or-") || k.length < 20 || /^https?:/i.test(k) || /[{}]/.test(k) || /^(undefined|null)$/i.test(k)) {
+    return { key: k, problem: "format" };
+  }
   return { key: k, problem: null };
 }

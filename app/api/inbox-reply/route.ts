@@ -19,7 +19,7 @@ import { firebaseConfig } from "@/lib/firebase-config";
 export const maxDuration = 60;
 
 // স্ক্রিনের স্ট্যাটাস লাইনে দেখানো হয় — বোঝা যায় নতুন কোড ডিপ্লয় হয়েছে কিনা
-const VERSION = "2026-11-01-gemini";
+const VERSION = "2026-11-01-gemini-live";
 
 // ============================================================================
 //  AI প্রোভাইডার:
@@ -171,7 +171,7 @@ function userMessage(provider: Provider, kind: FailKind, detail: string): string
   switch (kind) {
     case "auth":
       return provider === "gemini"
-        ? "Gemini API key কাজ করছে না (৪০০/৪০১/৪০৩)।\nকারণ: কী-টা ভুল, মুছে ফেলা, অথবা সেই কী-তে Gemini API বন্ধ।\nসমাধান: aistudio.google.com/apikey এ নতুন কী বানিয়ে Vercel এ GEMINI_API_KEY এ বসান → Redeploy করুন।"
+        ? "Google আপনার Gemini কী গ্রহণ করছে না (৪০০/৪০১/৪০৩)।\nকারণ: কী-টা ভুল, মুছে ফেলা, অথবা সেই কী-তে Gemini API বন্ধ।\nসমাধান: aistudio.google.com/apikey এ নতুন কী বানিয়ে Vercel এ GEMINI_API_KEY এ বসান → Redeploy করুন।"
         : "OpenRouter আপনার API key গ্রহণ করেনি (৪০১)।\nসমাধান: openrouter.ai এ নতুন কী বানিয়ে Vercel এ OPENROUTER_API_KEY এ বসান → Redeploy করুন।";
     case "credit":
       return "আপনার OpenRouter অ্যাকাউন্টের ব্যালেন্স নেগেটিভ (৪০২)। openrouter.ai → Credits এ কিছু ক্রেডিট যোগ করুন।";
@@ -270,7 +270,7 @@ function planProviders(): { plans: ProviderPlan[]; error: string | null; notes: 
   if (gem.problem === "missing") {
     notes.push("ℹ️ Gemini কী বসানো নেই (Vercel এ GEMINI_API_KEY)। বসালে এই সমস্যা থাকবে না — ফ্রি, aistudio.google.com/apikey থেকে নিন।");
   } else if (gem.problem === "format") {
-    notes.push("ℹ️ Vercel এর GEMINI_API_KEY ভুল (AIza দিয়ে শুরু হওয়ার কথা), তাই Gemini বাদ গেছে। সঠিক কী বসান।");
+    notes.push("ℹ️ Vercel এর GEMINI_API_KEY Gemini এর কী বলে মনে হচ্ছে না (খালি/খুব ছোট/অন্য ধরনের লেখা), তাই Gemini বাদ গেছে। aistudio.google.com/apikey থেকে নতুন কী বসান।");
   }
   if (plans.length > 0) return { plans, error: null, notes };
 
@@ -279,7 +279,7 @@ function planProviders(): { plans: ProviderPlan[]; error: string | null; notes: 
       plans,
       notes,
       error:
-        "Vercel এ GEMINI_API_KEY এ যা বসানো আছে সেটা Gemini এর কী নয় (Gemini কী সবসময় AIza দিয়ে শুরু হয়)। aistudio.google.com/apikey থেকে সঠিক কী নিয়ে বসান, তারপর Redeploy করুন।",
+        "Vercel এ GEMINI_API_KEY এ যা বসানো আছে সেটা Gemini এর কী বলে মনে হচ্ছে না (খালি, খুব ছোট, বা অন্য কোনো লেখা)। aistudio.google.com/apikey থেকে নতুন কী নিয়ে বসান, তারপর Redeploy করুন।",
     };
   }
   if (orr.problem === "format") {
@@ -342,6 +342,51 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// ------------------------------ লাইভ কী যাচাই ------------------------------
+type Live = { state: "ok" | "rejected" | "limit" | "unverified"; detail: string };
+let liveCache: { key: string; at: number; value: Live } | null = null;
+
+// গুগলকে একটা ছোট্ট "ping" পাঠিয়ে দেখা কী সত্যিই চলছে কিনা (ফল ১০ মিনিট মনে রাখা হয়, যেন বারবার কোটা খরচ না হয়)
+async function checkGeminiLive(key: string): Promise<Live> {
+  if (liveCache && liveCache.key === key && Date.now() - liveCache.at < (liveCache.value.state === "limit" ? 60_000 : 600_000)) {
+    return liveCache.value;
+  }
+  let value: Live = { state: "unverified", detail: "" };
+  for (const model of listFromEnv("GEMINI_MODELS", DEFAULT_GEMINI_MODELS, 5).slice(0, 3)) {
+    try {
+      const res = await fetch(`${GEMINI_BASE}/${model}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: "ping" }] }],
+          generationConfig: { maxOutputTokens: 8 },
+        }),
+        signal: AbortSignal.timeout(9000),
+      });
+      if (res.ok) {
+        value = { state: "ok", detail: "" };
+        break;
+      }
+      const detail = shortDetail(await res.text());
+      if (res.status === 401 || res.status === 403 || (res.status === 400 && /api key|API_KEY/i.test(detail))) {
+        value = { state: "rejected", detail };
+        break;
+      }
+      if (res.status === 429) {
+        value = { state: "limit", detail };
+        break; // কী ঠিক আছে, শুধু সীমা শেষ
+      }
+      value = { state: "unverified", detail: `${model} → ${res.status}: ${detail}` };
+      if (res.status !== 404) break; // মডেল না পেলে পরেরটা, নাহলে থামি
+    } catch {
+      value = { state: "unverified", detail: "গুগলের সাথে সংযোগ হয়নি" };
+      break;
+    }
+  }
+  liveCache = { key, at: Date.now(), value };
+  return value;
+}
+
 // স্ট্যাটাস: কোন AI কী ঠিকমতো বসানো আছে (কী নিজে কখনো পাঠানো হয় না)
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization") || "";
@@ -351,9 +396,12 @@ export async function GET(req: NextRequest) {
   }
   const gem = readGeminiKey(process.env.GEMINI_API_KEY);
   const orr = readApiKey(process.env.OPENROUTER_API_KEY);
+  const live = gem.problem === null && req.nextUrl.searchParams.get("check") === "1" ? await checkGeminiLive(gem.key) : null;
   return NextResponse.json({
     version: VERSION,
     gemini: gem.problem ?? "ok",
     openrouter: orr.problem ?? "ok",
+    live: live?.state ?? null,
+    liveDetail: live?.detail ?? "",
   });
 }
