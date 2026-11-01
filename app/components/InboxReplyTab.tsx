@@ -113,7 +113,7 @@ function ErrorBanner({ message }: { message: string }) {
     <div className="bg-[var(--red-soft)] border border-[var(--red)]/30 rounded-xl p-3.5 text-sm text-[var(--red)] space-y-2">
       <div className="flex items-start gap-2">
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-        <span>{message}</span>
+        <span className="whitespace-pre-wrap">{message}</span>
       </div>
       {rulesProblem && (
         <details className="text-xs text-[var(--text-primary)]">

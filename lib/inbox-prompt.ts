@@ -270,3 +270,15 @@ export function normalizeResult(parsed: unknown): InboxReplyResult {
     warnings,
   };
 }
+
+// Vercel এ কী বসানোর সময় সাধারণ ভুলগুলো (কোটেশন, "Bearer ", স্পেস, নতুন লাইন) নিজে ঠিক করে নেয়
+export function readApiKey(raw: string | undefined): { key: string; problem: "missing" | "format" | null } {
+  let k = (raw ?? "").trim();
+  k = k.replace(/^["']+|["']+$/g, "");
+  k = k.replace(/^OPENROUTER_API_KEY\s*=\s*/i, "");
+  k = k.replace(/^Bearer\s+/i, "");
+  k = k.replace(/[^\x21-\x7E]/g, ""); // স্পেস/নতুন লাইন/অদৃশ্য ক্যারেক্টার বাদ
+  if (!k) return { key: "", problem: "missing" };
+  if (!k.startsWith("sk-or-")) return { key: k, problem: "format" };
+  return { key: k, problem: null };
+}

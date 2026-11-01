@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Trash2, Pencil } from "lucide-react";
 
 export default function FormPanel({
@@ -18,7 +19,20 @@ export default function FormPanel({
   submitLabel?: string;
   wide?: boolean;
 }) {
-  return (
+  // পপআপ চলার সময় পেছনের পেজ স্ক্রল বন্ধ রাখা
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  // ড্যাশবোর্ডের কনটেন্ট বক্সে অ্যানিমেশনের transform থেকে যায়, তাতে position:fixed পপআপ
+  // স্ক্রিনের বদলে ওই বক্সের সাথে আটকে উপরে কেটে যেত। তাই পপআপটা সরাসরি document.body তে বসানো হয়।
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center sm:px-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
@@ -43,7 +57,8 @@ export default function FormPanel({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
